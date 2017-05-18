@@ -1,0 +1,31 @@
+NAME: SHAAN MATHUR
+EMAIL: SHAANKARANMATHUR@GMAIL.COM
+UID: 904606576
+
+SERIAL #: FZEDA628D0226M501
+WIFI MAC: 90:b6:86:12:5b:39
+
+Here is a list of the files included in this project:
+
+1. file_transfer.png
+   Here, I used a program called WinSCP to transfer a hello.c file from
+   my PC to the Edison.
+
+2. git.png
+   Here I used the opkg install git command to install git (which was already
+   was installed). Then I cloned a directory from one of my github accounts
+   (the starter hello-world repository), and got a hello-world directory. I
+   output the contents of the README to demonstrate the clone's successful.
+
+3. hello.png
+   After transfer of the hello.c file to the Edison, I use gcc to compile
+   the file and run the executable, which simply prints "Hello, World!"
+
+4. setup.png
+   This shows the configuration of the Edison using the configure_edison --setup
+   command (name, password, wifi).
+
+5. selfie.jpg
+   A selfie of me with the Edison. I tried not to make a weird face, but I may
+   have failed.
+

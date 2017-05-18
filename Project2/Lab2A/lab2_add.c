@@ -1,0 +1,227 @@
+/* NAME: SHAAN MATHUR
+   EMAIL: SHAANKARANMATHUR@GMAIL.COM
+   UID: 904606576
+*/
+
+#include <stdio.h>
+#include <time.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <sched.h>
+#include <string.h>
+
+pthread_mutex_t mutex;
+
+int opt_yield;
+void add(long long *pointer, long long value) {
+  long long sum = *pointer + value;
+  if(opt_yield)
+    sched_yield();
+  *pointer = sum;
+}
+
+int s_flag;
+void add_s(long long *pointer, long long value) {
+  while(__sync_lock_test_and_set(&s_flag, 1));
+
+  /* CRITICAL SECTION */
+  long long sum = *pointer + value;
+  if(opt_yield)
+    sched_yield();
+  *pointer = sum;
+  /* END OF CRITICAL SECTION */
+
+  __sync_lock_release(&s_flag);
+}
+
+
+void add_c(long long *pointer, long long value) {
+  long long sum;
+  do{
+  /* CRITICAL SECTION */
+  sum = *pointer + value;
+  if(opt_yield)
+    sched_yield();
+  }while(__sync_val_compare_and_swap(pointer, sum - value, sum) != sum - value);
+  /* END OF CRITICAL SECTION */
+
+
+}
+
+
+void add_m(long long *pointer, long long value) {
+  pthread_mutex_lock(&mutex);
+
+  /* CRITICAL SECTION */
+  long long sum = *pointer + value;
+  if(opt_yield)
+    sched_yield();
+  *pointer = sum;
+  /* END OF CRITICAL SECTION */
+  
+  pthread_mutex_unlock(&mutex);
+}
+
+struct arg{
+  long long iterations;
+  long long * count;
+  void (*add_t)(long long *, long long);
+};
+
+void *threaded_sum(void* args){
+  struct arg x = *((struct arg*) args);
+  long long iterations = x.iterations;
+  long long * counter = x.count;
+ 
+
+  long long i;
+  for(i = 0; i < iterations; i++)
+    x.add_t(counter, 1);
+
+  for(i = 0; i < iterations; i++)
+    x.add_t(counter, -1);
+
+  return NULL;
+}
+
+long long diff(struct timespec start, struct timespec end, struct timespec delta){
+  long long d1 = 0, d2 = 0;
+  if(end.tv_nsec - start.tv_nsec < 0){
+    d1 = 1e9;
+  }
+
+  if(delta.tv_nsec - end.tv_nsec < 0)
+    d2 = 1e9;
+
+  long long x = 1e9*(2*end.tv_sec - start.tv_sec - delta.tv_sec);
+  long long y = ((d1 + end.tv_nsec - start.tv_nsec) - (d2 + delta.tv_nsec - end.tv_nsec));
+  return (x  + y);
+
+}
+
+
+
+int main(int argc, char** argv){
+  long long numThreads = 1; /* COMMAND LINE ARGUMENT */
+  long long iterations = 1; /* COMMAND LINE ARGUMENT */
+  opt_yield = 0;
+  s_flag = 0;
+  pthread_mutex_init(&mutex, NULL);
+  char* mode;
+  
+  void (*add_type)(long long*, long long) = add;
+  
+  static struct option l_options[] = {
+    {"threads", required_argument, NULL, 't'},
+    {"iterations", required_argument, NULL, 'i'},
+    {"yield", no_argument, NULL, 'y'},
+    {"sync", required_argument, NULL, 's'},
+    {0, 0, 0, 0}
+  };
+
+  int c;
+  char y = 0;
+  int isYielding = 0;
+  while( (c = getopt_long(argc, argv, "t:i:", l_options, NULL)) != -1 ){
+    switch(c){
+    case 't':
+      numThreads = atoll(optarg);
+      break;
+    case 'i':
+      iterations = atoll(optarg);
+      break;
+    case 'y':
+      opt_yield = 1;
+      isYielding = 1;
+      break;
+    case 's':
+      if(strlen(optarg) != 1){
+	fprintf(stderr, "usage: lab2_add [--threads=NUMBER] [--iterations=NUMBER] [--yield]  [--sync=TYPE]\n");
+	exit(1);
+      }
+      y = optarg[0];
+      switch(y){
+      case 'm':
+	add_type = add_m;
+	break;
+      case 's':
+	add_type = add_s;
+	break;
+      case 'c':
+	add_type = add_c;
+	break;
+      default:
+	fprintf(stderr, "usage: lab2_add [--threads=NUMBER] [--iterations=NUMBER] [--yield]  [--sync=TYPE]\n");
+	exit(1);
+      }
+      break;
+    default:
+      fprintf(stderr, "usage: lab2_add [--threads=NUMBER] [--iterations=NUMBER] [--yield] [--sync=TYPE]\n");
+      exit(1);
+    }
+  }
+      
+
+
+  switch(y){
+  case 'm':
+    if(isYielding)
+      mode = "add-yield-m";
+    else
+      mode = "add-m";
+    break;
+  case 's':
+    if(isYielding)
+      mode = "add-yield-s";
+    else
+      mode = "add-s";
+    break;
+  case 'c':
+    if(isYielding)
+      mode = "add-yield-c";
+    else
+      mode = "add-c";
+    break;
+  default:
+    if(isYielding)
+      mode = "add-yield-none";
+    else
+      mode = "add-none";
+    break;
+  }
+  
+  long long counter = 0;
+  struct arg x;
+  x.iterations = iterations;
+  x.count = &counter;
+  x.add_t = add_type;
+  
+  pthread_t* threads = (pthread_t *) malloc(sizeof(pthread_t)*numThreads);
+  int* success = (int *) malloc(sizeof(int) * numThreads);
+  
+  struct timespec start, end, delta;
+  long long i = 0;
+  clock_gettime(CLOCK_REALTIME, &start);
+  
+  for(;i < numThreads; i++){
+    if(pthread_create(threads + i, NULL, threaded_sum, (void *) &x))
+      success[i] = 0;
+    else
+      success[i] = 1;
+    
+  }
+
+
+  for(i = 0; i < numThreads; i++)
+    if(success[i])
+      pthread_join(threads[i], NULL);
+  
+  clock_gettime(CLOCK_REALTIME, &end);
+  clock_gettime(CLOCK_REALTIME, &delta); // Capture overhead timing for function call
+
+  long long time = diff(start, end, delta);
+  printf("%s,%lld,%lld,%lld,%lld,%lld,%lld\n", mode, numThreads, iterations, numThreads*iterations*2, time, time / (numThreads*iterations*2), counter);
+
+  return 0;
+}

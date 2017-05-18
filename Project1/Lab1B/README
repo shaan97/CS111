@@ -1,0 +1,48 @@
+NAME: SHAAN MATHUR
+UID: 904606576
+EMAIL: SHAANKARANMATHUR@GMAIL.COM
+
+The contents of the project are as follows:
+
+1. lab1b-client.c
+   A C source file describing the program lab1b-client. It functions as a client
+   making a network connection via sockets to an external process that functions
+   as a client.
+
+2. lab1b-server.c
+   A C source file describing the program lab1b-server.c. It functions as a server
+   making a network connection via sockets to an external process that functions
+   as a client. It provides the service for the client to simulate a bash shell,
+   and will accept character input, process it in the shell, and return the shell's
+   output.
+
+3. Makefile
+   A file describing how to build the program and the tarball. It has distinct
+   targets for client and server but by default builds both. It also supports
+   clean and dist targets.
+
+4. my.key
+   This contains 16 bytes to be used as an encryption key for the encryption
+   flags on the executables.
+
+5. README
+   A file describing the contents of the project.
+
+6. crypt.h
+   A C header file that encapsulates the mcrypt library into two simpler functions,
+   encrypt(...) and decrypt(...). Since these are used for both client and server,
+   having a header file to allow gcc to statically link those functions during
+   building of the other programs would reduce time spent copy-pasting.
+
+7. crypt.c
+   A C source file that features the implementations of the encapsulated mcrypt
+   library (explained in [6]).
+
+Research sources:
+Working with sockets: http://www.cs.rpi.edu/~moorthy/Courses/os98/Pgms/socket.html
+Mcrypt: Idea of abstracting encrypt/decrypt came from TA slides on CCLE.
+
+
+
+
+NOTE: I am using 2 slip days for this project. 

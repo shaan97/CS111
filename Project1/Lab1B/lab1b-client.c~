@@ -1,0 +1,243 @@
+//NAME: Shaan Mathur
+//EMAIL: shaankaranmathur@gmail.com
+//ID: 904606576
+
+#include <stdio.h>
+#include <termios.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <getopt.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <netdb.h>
+#include <poll.h>
+#include "crypt.h"
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+// Gets current attributes
+void getattr(int fd, struct termios* attr){
+  // Get old terminal attributes
+  int err = tcgetattr(0, attr);
+  if(err){
+    fprintf(stderr, "Failed to receive terminal attributes.\n");
+    exit(1);
+  }
+}
+
+void setattr(int fd, struct termios* attr){
+ // Now change the attributes
+  int err = tcsetattr(0, TCSANOW, attr);
+  if(err){
+    fprintf(stderr, "Failed to update terminal attributes. Error #%d\n", err);
+    exit(1);
+  }
+}
+
+
+
+int main(int argc, char** argv){
+  static struct option l_options[] = {
+    {"port", required_argument, NULL, 'p'},
+    {"log", required_argument, NULL, 'l'},
+    {"encrypt", required_argument, NULL, 'e'},
+    { 0, 0, 0, 0},
+  };
+
+  int c, port, log_fd = -1, encrypt_on = 0;
+  int detected = 0, log_len = 0;
+  char * log_name;
+  char * key = malloc(17);
+  key[16] = 0;
+  while( (c = getopt_long(argc, argv, "p:l:e:", l_options, NULL)) != -1){
+    switch(c){
+    case 'p':
+      port = atoi(optarg);
+      detected = 1;
+      break;
+    case 'l':
+      log_name = optarg;
+      log_len = strlen(log_name);
+      log_fd = open(log_name, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+      break;
+    case 'e':
+      encrypt_on = 1;
+      int e_fd = open(optarg, O_RDONLY);
+      read(e_fd, key, 16);
+      close(e_fd);
+      break;
+    default:
+      fprintf(stderr, "usage: client [--port=number] [--log=filename] [--encrypt=filename]\n");
+      exit(1);
+      break;
+    }
+  }
+
+  if(detected == 0){
+    fprintf(stderr, "usage: client [--port=number] [--log=filename] [--encrypt=filename]\n");
+    exit(1);
+     
+  }
+  
+
+  char * iv = "AAAAAAAAAAAAAAAA";
+
+  int keysize = 16;
+
+
+  
+  
+  
+  
+  char * host = "localhost";
+  
+  // Creates structure to hold terminal attributes
+  struct termios old_attr, new_attr;
+
+  getattr(0, &old_attr);
+  
+  getattr(0, &new_attr);      // Use second copy to modify the attributes 
+  new_attr.c_iflag = ISTRIP;
+  new_attr.c_oflag = 0;
+  new_attr.c_lflag = 0;
+
+  setattr(0, &new_attr);
+
+  int sockfd;
+  struct sockaddr_in server_address;
+  if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+    fprintf(stderr, "Error#: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+    setattr(0, &old_attr);
+    exit(1);
+  }
+
+  // Get information on target server host/port
+  struct hostent* server_name = gethostbyname(host);
+
+  bzero((char*) &server_address, sizeof(server_address)); // Zero it out for padding purposes
+  bcopy((char*) server_name->h_addr, (char*) &server_address.sin_addr.s_addr, server_name->h_length); // Copy over relevant data from server_name
+
+  server_address.sin_family = AF_INET;
+  server_address.sin_port = htons(port);
+
+  if( connect(sockfd, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
+    fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+    setattr(0, &old_attr);
+    exit(1);
+  }
+
+  // Successful connection. Begin reading from STDIN
+
+  char buffer[1024];
+  int size, i = 0;
+
+  struct pollfd fds[2];
+  fds[0].fd = 0;
+  fds[1].fd = sockfd;
+
+  fds[0].events = POLLIN | POLLHUP | POLLERR;
+  fds[1].events = POLLIN | POLLHUP | POLLERR;
+  int count = 0;
+  while(1){
+
+    if( poll(fds, 2, 0) < 0 ){
+      fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+      setattr(0, &old_attr);
+      exit(1);
+    }
+
+    if( (fds[0].revents & POLLIN) != 0){
+      // Keyboard input available
+      if( (size = read(0, buffer, 1024)) < 0){
+	fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+	setattr(0, &old_attr);
+	exit(1);
+      }
+      
+      for( i = 0; i < size; i++){
+	
+	if(buffer[i] == '\r'){
+	  write(1, "\r\n", 2);
+	  buffer[i] = '\n';
+	}else{
+	  write(1, buffer + i, 1);
+	}
+	char current = *(buffer + i);
+	if(encrypt_on){
+	  //printf("\n%s\n%s\n%c\n", iv, key, current);
+	  encrypt(&current, 1, iv, key, keysize);
+	  //printf("%c", current);
+	}
+	if(log_len){
+	  if(count == 1){
+	    dprintf(log_fd, "\n");
+	  }
+	  count = 1;
+	  if(dprintf(log_fd, "SENT 1 bytes: %c\n", current) < 0){
+	    fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+	    setattr(0, &old_attr);
+	    exit(1);
+	  }
+	  
+	}
+	
+	if(write(sockfd, &current, 1) < 0){
+	  fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+	  setattr(0, &old_attr);
+	  exit(1);
+	}
+      }  
+    }
+
+
+
+    if( (fds[1].revents & POLLIN) != 0 ){
+      // Socket input available
+      if( (size = read(sockfd, buffer, 1024)) < 0){
+	fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+	setattr(0, &old_attr);
+	exit(1);
+      }
+      if(size == 0){
+	setattr(0, &old_attr);
+	exit(1);
+      }
+      
+      if(log_len){
+	dprintf(log_fd, "RECEIVED %d bytes: ", size);
+	int j = 0;
+	for(j = 0; j < size; j++){
+	  dprintf(log_fd, "%c", buffer[j]);
+	}
+	dprintf(log_fd, "\n");
+      }
+
+      if(encrypt_on){
+	decrypt(buffer, size, iv, key, keysize);
+      }
+      write(1, buffer, size);
+      /*int i = 0;
+      for(i = 0; i < size; i++){
+	if(encrypt_on)
+	  decrypt(buffer + i, 1, iv, key, keysize);
+	}else{
+	  write(1, buffer + i, 1);
+	}
+      }*/
+
+    }
+
+    if( (fds[1].revents & (POLLHUP | POLLERR)) != 0){
+      // Socket hang up or error
+      setattr(0, &old_attr);
+      exit(1);
+    }
+  }
+
+  
+  setattr(0, &old_attr);
+  return 0;
+}
