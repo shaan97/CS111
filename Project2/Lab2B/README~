@@ -1,0 +1,108 @@
+NAME: SHAAN MATHUR
+EMAIL: SHAANKARANMATHUR@GMAIL.COM
+UID: 904606576
+
+INCLUDED FILES
+
+1. SortedList.h
+   Header file containing interfaces for linked list operations.
+
+2. SortedList.c
+   C source file implementing interface for linked list operations. Implements (insert, delete
+   lookup, length) for a sorted doubly linked list.
+
+3. lab2_list.c
+   C source file that implements command line options (--threads, --iterations, --yield, --sync, --lists).
+   It inserts random keys into a (possibly partitioned) sorted doubly linked list. Possible segmentation
+   faults if running in a non-synchronized multi-threaded runs.
+
+4. Makefile
+   Can be used in tandem with the make command to build the lab2_list executable, run test cases, generate a
+   profile, generate graphs, create a deliverable tarball, and remove all generated programs and output.
+
+5. lab2b_list.csv
+   File containing the results of the test runs.
+
+6. test.sh
+   File containing all test cases that we expect to pass.
+
+7. profile.out
+   Execution profiling report showing where time was spent in the un-partitioned spin-lock implementation.
+
+8. lab2b_1.png
+   Graph of the throughput vs. number of threads for mutex and spin-lock synchronized list operations.
+
+9. lab2b_2.png
+   Graph of the mean time per mutex wait and mean time per operation for mutex-synchronized list operations.
+
+10. lab2b_3.png
+   Graph of successful iterations vs. threads for each synchronization method.
+
+11. lab2b_4.png
+    Graph of the throughput vs. number of threads for mutex synchronized partitioned lists.
+
+12. lab2b_5.png
+    Graph of the throughput vs number of threads for spin-lock-synchronized partitioned lists.
+
+13. README
+    File describing included files, resources used, and answers to questions pertaining to this project.
+
+14. lab2_list.gp
+    Data reduction script to be used in tandem with lab2b_list.csv file and gnuplot command to generate
+    graphs for project.
+
+15. hash.h
+    Header file declaring the existance of a hash function for C strings.
+
+16. hash.c
+    C source file implementing a hash function for C string using
+
+
+RESOURCES
+http://www.cse.yorku.ca/~oz/hash.html Used for learning well known C-string hash functions.
+
+
+QUESTIONS
+
+2.3.1)
+Most cycles in a 1 or 2 thread list test will be spent in functions like SortedList_insert,
+SortedList_length, SortedList_lookup, and strcmp. The first three are O(N) algorithms, and
+since no parallelism is really being advantageously used, these are the algorithms that will
+occupy the most time. If the average key length is of length K, and there are N nodes, there
+are N*K character comparisons in the worst case, so strcmp has a lot of computations to make.
+High thread spin-lock tests will likely have a lot of cycles acquiring locks since they just
+spin repeatedly as they ceaselessly attempt to acquire the lock. The mutex tests would not
+suffer as much from this issue since they go to sleep until awoken by the availability of a lock;
+they would likely have the most cycles spent in the same functions in a low thread test (e.g. strcmp).
+
+2.3.2)
+Most cycles are taking place at the __sync_lock_and_test(...) call in the while loop of the spin lock.
+(This occurs in line lab2_list.c:130).
+This makes sense since more threads means a higher competition of resources for the lock. In turn,
+threads are more likely to waste CPU time just spinning, meaning that at any given moment of time
+the execution is more likely to be at the function trying to get ownership of the lock. 
+
+2.3.3)
+The lock time wait rises with the number of contending threads increasing because any given thread
+requesting a lock would have to compete with, in the worst case, N - 1 other threads. Even in a
+perfectly ideal scheduling system, the wait time would still grow linearly with the number of threads.
+Completion time also increases due to the extra time required to perform context switches, caches
+starting to become full of other thread's data, and the overhead of creating and destroying threads.
+However this time increase is less dramatic than the wait time because these are small additions
+in time that are relatively pale in comparison to the increase in throughput that comes with parallelism.
+The wait time however will increase regardless of increased throughput, since a paused thread will
+have to stay paused for longer if it has more competition.
+
+2.3.4)
+The throughput of the synchronized methods increases with the number of lists; in the graphs, we see
+that the initially concave downwards parabolic curves shifted up and were stretched horizontally as
+the number of partitioned lists increased, since this fine grained locking scheme permits multiple threads
+to access the overall structure (as opposed to the course grained scheme with one list).
+However the distance between these level curves in the graph are converging, suggesting
+there is an upper bound on the number of lists to increase throughput; this is
+likely because after a certain number of lists, the bottleneck in the
+program no longer becomes a matter of lock acquisition, but of other aspects of the program (e.g.
+list insertion/deletion). The throughput of an N-way partioned list is not equivalent to the throughput
+of a single list with fewer threads, which makes sense since a single list with fewer threads still has
+to deal with algorithms linearly proportional to the number of nodes; more partitions means that each
+sublist will have to work with less nodes, so it would operate faster.

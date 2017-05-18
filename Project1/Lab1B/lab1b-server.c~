@@ -1,0 +1,293 @@
+//NAME: Shaan Mathur
+//EMAIL: shaankaranmathur@gmail.com
+//ID: 904606576
+
+#include <stdio.h>
+#include <termios.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <getopt.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <netdb.h>
+#include <poll.h>
+#include "crypt.h"
+#include <signal.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+// Gets current attributes
+void getattr(int fd, struct termios* attr){
+  // Get old terminal attributes
+  int err = tcgetattr(0, attr);
+  if(err){
+    fprintf(stderr, "Failed to receive terminal attributes.\n");
+    exit(1);
+  }
+}
+
+void setattr(int fd, struct termios* attr){
+ // Now change the attributes
+  int err = tcsetattr(0, TCSANOW, attr);
+  if(err){
+    fprintf(stderr, "Failed to update terminal attributes. Error #%d\n", err);
+    exit(1);
+  }
+}
+
+
+
+int main(int argc, char** argv){
+  static struct option l_options[] = {
+    {"port", required_argument, NULL, 'p'},
+    {"encrypt", required_argument, NULL, 'e'},
+    {0, 0, 0, 0},
+  };
+
+  int c, port, encrypt_on = 0;
+  int detected = 0;
+  char* key = malloc(17);
+  key[16] = 0;
+  while( (c = getopt_long(argc, argv, "p:e:", l_options, NULL)) != -1){
+    switch(c){
+    case 'p':
+      port = atoi(optarg);
+      detected = 1;
+      break;
+    case 'e':
+      encrypt_on = 1;
+      int e_fd = open(optarg, O_RDONLY);
+      
+      if(e_fd < 0){
+	fprintf(stderr, "Error: %d Error Message: \"%s\"\n", errno, strerror(errno));
+	exit(1);
+      }
+      if(read(e_fd, key, 16) < 0){
+	fprintf(stderr, "Error: %d Error Message: \"%s\"\n", errno, strerror(errno));
+	exit(1);
+      }
+      
+      close(e_fd);
+      break;
+    default:
+      fprintf(stderr, "usage: server [--port=number] [--encrypt=filename]\n");
+      exit(1);
+      break;
+    }
+  }
+
+  if(detected == 0){
+    fprintf(stderr, "usage: server [--port=number] [--encrypt=filename]\n");
+    exit(1);
+  }  
+  //int port = 1025; /* COMMAND LINE ARGUMENT */
+  char * iv = "AAAAAAAAAAAAAAAA";
+  //char * key = "1953247akciwzmv"; /* COMMAND LINE ARGUMENT */
+  int keysize = 16;
+  //int encrypt_on = 0;
+  char * host = "localhost";
+
+ 
+  /*
+
+  // Creates structure to hold terminal attributes
+  struct termios old_attr, new_attr;
+
+  getattr(0, &old_attr);
+  
+  getattr(0, &new_attr);      // Use second copy to modify the attributes 
+  new_attr.c_iflag = ISTRIP;
+  new_attr.c_oflag = 0;
+  new_attr.c_lflag = 0;
+
+  setattr(0, &new_attr);
+  */
+  int listenfd = 0, fromfd = 0;
+  struct sockaddr_in server_address;
+  struct sockaddr_in client_address;
+  if( (listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+    fprintf(stderr, "Error #: %d. Error Message: \"%s\"\n", errno, strerror(errno));
+    //setattr(0, &old_attr);
+    exit(1);
+  }
+
+  server_address.sin_family = AF_INET;
+  server_address.sin_addr.s_addr = INADDR_ANY;
+  server_address.sin_port = htons(port);
+
+  if( bind(listenfd, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
+    fprintf(stderr, "Error #: %d. Error Message: \"%s\"\n", errno, strerror(errno));
+    exit(1);
+  }
+  listen(listenfd, 5);
+  unsigned cli_len = sizeof(client_address);
+  fromfd = accept(listenfd, (struct sockaddr *) &client_address, &cli_len);
+
+  int commands[2], output[2];
+  if(pipe(commands) == -1){
+    fprintf(stderr, "Pipe Failure.\n");
+    exit(1);
+  }
+
+  if(pipe(output) == -1){
+    fprintf(stderr, "Pipe Failure.\n");
+    exit(1);
+  }
+
+  pid_t pid = fork();
+  if(pid == -1){
+    fprintf(stderr, "Forking Process Failure.\n");
+    exit(1);
+  }
+
+  
+  
+  if(pid == 0){
+    // Shell
+    close(commands[1]);
+    close(output[0]);
+
+    if( dup2(output[1], 1) == -1){
+      fprintf(stderr, "Failed to form pipe.\n");
+      exit(1);
+    }
+
+    if(dup2(commands[0], 0) == -1){
+      fprintf(stderr, "Failed to form pipe.\n");
+      exit(1);
+    }
+
+    if(dup2(output[1], 2) == -1){
+      fprintf(stderr, "Failed to form pipe.\n");
+      exit(1);
+    }
+
+    execv("/bin/bash", NULL);
+    
+  }else{
+    // Server
+    close(commands[0]);
+    close(output[1]);
+
+    struct pollfd fds[2];
+    fds[0].fd = fromfd;
+    fds[1].fd = output[0];
+
+    fds[0].events = POLLIN | POLLHUP | POLLERR;
+    fds[1].events = POLLIN | POLLHUP | POLLERR;
+
+    
+    char buffer[1024];
+    int size, can_write = 1;
+
+    while(1){
+      if (poll(fds, 2, 0) < 0){
+	fprintf(stderr, "Error #: %d. Error Message: \"%s\"\n", errno, strerror(errno));
+	exit(1);
+      }
+
+      if( (fds[0].revents & POLLIN) != 0){
+	// Handle input from client
+	size = read(fromfd, buffer, 1024);
+	//printf("Received %d bytes of input from client.\n", size);
+	//write(1, buffer, size);
+	int i;
+	for(i = 0; i < size; i++){
+	  if(encrypt_on){
+	    decrypt(buffer + i, 1, iv, key, keysize);
+	  }
+	  if(buffer[i] == 0x03){
+	    // ^C results in SIGINT signal to shell
+	    kill(pid, 2);
+	    break;
+	  }else if(buffer[i] == 0x04){
+	    // ^D results in closing the write side of the pipe to shell
+	    close(commands[1]);
+	    can_write = 0;
+	    break;
+	  }else if(can_write){
+	    write(commands[1], buffer + i, 1);
+	  }
+	}
+
+      }
+      
+
+      if( (fds[0].revents & (POLLHUP | POLLERR)) != 0){
+	// Handle hang up or error from client
+	if(kill(pid, SIGTERM) < 0){
+	  fprintf(stderr, "Error #: %d. Error Message: %s\n", errno, strerror(errno));
+	  exit(1);
+	}
+	can_write = 0;
+
+	int status;
+	if( waitpid(pid, &status, 0) < 0){
+	  fprintf(stderr, "Error #: %d. Error Message. %s\n", errno, strerror(errno));
+	  exit(1);
+	}
+	fprintf(stderr, "SHELL EXIT SIGNAL=%d STATUS=%d\n", WTERMSIG(status), WEXITSTATUS(status));
+      }
+
+      if( (fds[1].revents & POLLIN) != 0){
+	// Handle output from shell
+	//printf("Received output from shell.\n");
+	size = read(output[0], buffer, 1024);
+
+	int buff_size = 3000;
+	char buffer2[buff_size];
+	int i, j = 0;
+	/*char * proper = "\r\n";
+	if(encrypt_on)
+	  encrypt(proper, 2, iv, key, keysize);
+	for(i = 0; i < size; i++){
+	  if(buffer[i] == '\n' || buffer[i] == '\r'){
+	    if(encrypt_on){
+	      encrypt(buffer + j, i + 1-j, iv, key, keysize);
+	    }
+	    write(fromfd, buffer + j, i+1-j);
+	    write(fromfd, proper, 2);
+	    j = i + 1;
+	  }
+	    
+	  
+	}
+	*/
+	for(i = 0; i < size; i++){
+	  if(buffer[i] != '\n' && buffer[i] != '\r'){
+	    buffer2[i + j] = buffer[i];
+	  }else{
+	    buffer2[i + j] = '\r';
+	    buffer2[i +  j + 1] = '\n';
+	    j++;
+	  }
+	}
+
+
+	if(encrypt_on){
+	  for(i = 0; i < size + j; i++){
+	    encrypt(buffer2 + i, 1, iv, key, keysize);
+	  }
+	}
+	write(fromfd, buffer2, size + j);
+      }else if( (fds[1].revents & (POLLHUP | POLLERR)) != 0){
+	// Handle hang up or error from shell
+	int status;
+	if(waitpid(pid, &status, 0) < 0){
+	  fprintf(stderr, "Error #: %d. Error Message: %s\n", errno, strerror(errno));
+	  exit(1);
+	}
+	fprintf(stderr, "SHELL EXIT SIGNAL=%d STATUS=%d\n", WEXITSTATUS(status), WTERMSIG(status));
+	exit(0);
+      }
+    }
+    
+    
+  }
+  //setattr(0, &old_attr);
+  return 0;
+}

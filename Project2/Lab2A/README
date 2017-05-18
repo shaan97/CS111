@@ -1,0 +1,142 @@
+NAME: SHAAN MATHUR
+EMAIL: SHAANKARANMATHUR@GMAIL.COM
+UID: 904606576
+
+I would like to use one slip day on this project.
+
+Testing was done using the provided sample.sh.
+
+RESOURCES:
+https://gcc.gnu.org/onlinedocs/gcc-4.4.5/gcc/Atomic-Builtins.html (Used for understanding atomic instructions)
+
+INCLUDED FILES
+
+1.  lab2_add.c
+    C program that implements and tests a shared variable add function. Supports options
+    for number of threads, number of iterations, synchronization, and yielding.
+
+2.  SortedList.h
+    A header file describing the interfaces for linked list operations.
+
+3.  SortedList.c
+    C module implementing aforementioned linked list operations (insertion, deletion, lookup,
+    length) for a doubly linked list. Yield calls also included based on global variable value.
+
+4.  lab2_list.c
+    C program that performs multithreaded modifications to a doubly linked list structure.
+    Supports arguments such as number of threads, iterations, synchroinzation, yielding.
+
+5.  Makefile
+    Can be used with make command to build deliverable pgorams, output, graphs, and tarball.
+    Options supported include:
+    	    - build
+	    - tests
+	    - graphs
+	    - dist
+	    - clean
+	    - lab2_add
+	    - lab2_list
+
+6. lab2_add.csv
+   Contains all results for lab2_add tests.
+
+7. lab2_list.csv
+   Contains all results for lab2_list tests.
+
+8. lab2_add-1.png
+   Graphs of threads and iterations required to generate a failure (w/ and w/o yields).
+
+9. lab2_add-2.png
+   Graphs of average time per operation (w/ and w/o yields).
+
+10. lab2_add-3.png
+    Graphs of average time per (single threaded) operation vs. the number of iterations.
+
+11. lab2_add-4.png
+    Graphs of threads and iterations that can run successfully with yields under each of the synchronizaiton
+    options.
+
+12. lab2_add-5.png
+    Graphs of average time per (protected) operations vs. the number of threads.
+
+13. lab2_list-1.png
+    Graph of average time per (single threaded) unprotected operation vs. number of iterations.
+
+14. lab2_list-2.png
+    Graph of threads and iterations required to generate a failure (w/ and w/o yields).
+
+15. lab2_list-3.png
+    Graph of iterations that can run (protected) without failure.
+
+16. lab2_list-4.png
+    Graph of (length-adjusted) cost per operation vs. the number of threads for the various synchronization options.
+
+17. sample.sh
+    Shell Script used to execute all test cases that we expect to be able to run successfully.
+
+18. lab2_add.gp
+    gnuplot data reduction script for lab2_add portion (requires lab2_add.csv)
+
+19. lab2_list.gp
+    gnuplot data reduction script for lab2_list portion (requires lab2_list.csv)
+
+20. README
+    The file you are reading now. Describes slip days, included files, and answers to the questions posed by the specifications.
+
+
+QUESTIONS
+
+2.1.1)
+The program does not fail easily until we hit about 8 threads, and
+even then it requires about 1000 iterations to consistently get
+incorrect results at the end. This makes sense because more threads
+increases the likelihood of different threads stepping on each other's
+toes (i.e. being scheduled in such a manner that they both access
+shared memory at the same time, resulting in a race condition). We
+also need a high amount of iterations so we can increase the amount
+of opportunities for a race condition to occur, thus increasing
+the probability of it happening.
+
+2.1.2)
+For 12 threads with 100000 iterations, the time spent per operation
+without yielding is 13 ns, whereas it takes 480 ns with yielding. The
+observation is that the time delay caused by yielding increases as
+there are more threads and more iterations; more iterations creates
+more yields, and more threads means we have to wait longer to have
+a yielded thread be rescheduled. We can't really resolve this issue
+about getting more accurate per operation timings with the --yield
+options since that would require insight on OS scheduling of the threads
+and how long the OS decides to keep the thread descheduled for.
+
+2.1.3)
+The overhead of creating threads becomes less significant as the
+number of iterations increases, since the work being done becomes
+more significant a factor with more necessary iterations. This amortization
+of the thread creation is what yields this trend.
+
+2.1.4)
+For a low number of threads, yielding doesn't have too dire a consequence
+since we don't have to wait for too many threads to take their turn on
+the CPU so we can be rescheduled. However if there are many threads, the
+cost of yielding increases substantially since there are more threads
+that are we have to wait behind before being rescheduled (in the worst case,
+if there are N - 1 other threads, we have to wait for all of them).
+
+2.2.1)
+The cost per operation in Part 2 vs Part 1 for the mutexes is much larger.
+This makes sense since the operations conducted in Part 1 are trivial (e.g.
+adding and updating a single int) whereas Part 2 is nontrivial (modifying
+a data structure with nodes). Both however still maintain some sort of
+increase in cost as there are more threads (since more threads means
+more threads waiting for their turn). Due to the aforementioned reasoning
+about the triviality of Part 1 operations, the slope of that graph is much
+smaller than the slope of Part 2's.
+
+2.2.2)
+In general, spin locks tend to perform much worse as the number of threads
+increases. This makes sense since this means that more threads are just spending
+their valuable CPU time just spinning in a while loop repeatedly. Thus more threads
+means more loss of time. With mutexes, this problem also occurs since more threads
+means more competition for locks, but since these threads just get descheduled when
+they request a lock, the performance hit is nowhere nearly as dramatic since the CPU
+is essentially given up on a failed lock acquisition.

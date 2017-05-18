@@ -1,0 +1,39 @@
+NAME: SHAAN MATHUR
+UID: 904606576
+EMAIL: SHAANKARANMATHUR@GMAIL.COM
+
+The included files are as follows:
+
+1. lab0.c
+   C source file for the executable. Compiles cleanly with no errors/warnings.
+
+2. Makefile
+   A Makefile to be used in tandem with the make command to
+     a. "make" the executable
+     b. "make check" which runs a smoke test on the executable
+     c. "make dist" which generates the compressed zip file
+     d. "make clean" which deletes all files generated and returns the directory to its original state.
+
+3. backtrace.png
+   A snapshot from a gdb session showing a segfault and the associated
+   backtrace.
+
+4. breakpoint.png
+   A snapshot from a gdb session showing a breakpoint and variable inspection.
+
+5. README
+   File describing contents of project.
+
+6. smoke_test.sh
+   Shell script running smoke test on the project executable. The following properties are examined:
+   	 a. Input file
+	 b. Standard Input
+	 c. Exit Status for successful execution
+	 d. Bad Input File
+	 e. Bad Output File
+	 f. Bad Arguments
+	 g. Segmentation Fault
+	 h. Catching Segmentation Fault
+
+The following resource was used to learn how to use getopt_long(...):
+http://www.informit.com/articles/article.aspx?p=175771&seqNum=3
