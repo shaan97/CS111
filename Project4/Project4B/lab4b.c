@@ -143,7 +143,7 @@ int main(int argc, char** argv){
       int capacity = 8;
       char * buff = (char *) malloc(sizeof(char) * capacity);
       do{
-	int rc = open(fd.fd, (void *) buff, capacity - size);
+	int rc = read(fd.fd, (void *) buff, capacity - size);
 	if(rc <= 0)
 	  break;
 	size += rc;
@@ -151,7 +151,7 @@ int main(int argc, char** argv){
 	if(size >= capacity)
 	  buff = (char *) realloc(buff, (capacity *= 2));
       }while(1);
-      const char[2] nl = "\n"
+      const char nl[2] = "\n"
       char * token = strtok(buff, nl);
       while(token != NULL){
 	if(strcmp(token, "OFF") == 0){
