@@ -151,7 +151,7 @@ int main(int argc, char** argv){
 	if(size >= capacity)
 	  buff = (char *) realloc(buff, (capacity *= 2));
       }while(1);
-      const char nl[2] = "\n"
+      const char nl[2] = "\n";
       char * token = strtok(buff, nl);
       while(token != NULL){
 	if(strcmp(token, "OFF") == 0){
