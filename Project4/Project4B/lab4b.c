@@ -48,7 +48,7 @@ int main(){
   unsigned int seconds = 1;  // COMMAND LINE ARGUMENT
   int mode = FAHR;           // COMMAND LINE ARGUMENT
   mraa_aio_context t_sensor;
-  init(&t_sensor);
+  init(t_sensor);
 
   time_t rawtime;
   struct tm* timeinfo;
