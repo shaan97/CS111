@@ -40,12 +40,20 @@ double read_temperature(mraa_aio_context* temp, int mode){
 
 }
 
-void init(mraa_aio_context* t_sensor){
+void init(mraa_aio_context* t_sensor, mraa_gpio_context * button){
   *t_sensor = mraa_aio_init(0);
   if(*t_sensor == NULL){
     fprintf(stderr, "Failed to initialize sensor.\n");
     exit(1);
   }
+
+  *button = mraa_gpio_init(3);
+  if(*button == NULL){
+    fprintf(stderr, "Failed to initialize button.\n");
+    exit(1);
+  }
+
+  mraa_gpio_dir(*button, MRAA_GPIO_IN);
 }
 
 void print_usage(){
@@ -111,7 +119,8 @@ int main(int argc, char** argv){
     }
   }
   mraa_aio_context t_sensor;
-  init(&t_sensor);
+  mraa_gpio_context button;
+  init(&t_sensor, &button);
 
   time_t rawtime;
   struct tm* timeinfo;
@@ -122,25 +131,30 @@ int main(int argc, char** argv){
   fd.events = POLLIN | POLLHUP | POLLERR;
   
   while(1){
+    if(mraa_gpio_read(button))
+      shutdown();
+
+    
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    
     float tmp = read_temperature(&t_sensor, mode);
+
+    
     if(running == 1)
       printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-
 
     if(logfd != -1)
       dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 
+    
     if(poll(&fd, 1, NULL) < 0){
       fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
       exit(1);
     }
 
-    if((fd.revents & POLLIN) != 0){
+    if(fd.revents & POLLIN){
       int size = 0;
-      int capacity = 8;
+      int capacity = 1024;
       char * buff = (char *) malloc(sizeof(char) * capacity);
       do{
 	int rc = read(fd.fd, (void *) buff, capacity - size);
