@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <poll.h>
 #include <errno.h>
+#include <string.h>
 
 const int B = 4275; // B value of the thermistor
 const int R0 = 100000; // R0 = 100k
@@ -143,7 +144,7 @@ int main(int argc, char** argv){
 
     
     
-    if(poll(&fd, 1, NULL) < 0){
+    if(poll(&fd, 1, 0) < 0){
       fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
       exit(1);
     }
@@ -164,7 +165,7 @@ int main(int argc, char** argv){
 	if(size >= capacity)
 	  buff = (char *) realloc(buff, (capacity *= 2));
 
-	if(poll(&fd, 1, NULL) < 0){
+	if(poll(&fd, 1, 0) < 0){
 	  fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
 	  exit(1);
 	}      
