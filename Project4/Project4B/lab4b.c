@@ -215,10 +215,16 @@ int main(int argc, char** argv){
     float tmp = read_temperature(&t_sensor, mode);
     
     if(running && rawtime - prev >= seconds){
-      printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-
-      if(logfd != -1)
-        dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+      	if(tmp >= 10.0)
+	    printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+	else
+	    printf("%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min,timeinfo->tm_sec, tmp);
+      if(logfd != -1){
+      	if(tmp >= 10.0)
+	  dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+      	else
+	  dprintf(logfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+      }
       prev = rawtime;
     }
   }
