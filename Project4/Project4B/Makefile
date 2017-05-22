@@ -1,3 +1,7 @@
+# NAME: SHAAN MATHUR
+# EMAIL: SHAANKARANMATHUR@GMAIL.COM
+# UID: 904606576
+
 default: lab4b.c
 	gcc -lm -lmraa lab4b.c -o lab4b
 clean:

@@ -1,3 +1,10 @@
+/* NAME: SHAAN MATHUR
+ * EMAIL: SHAANKARANMATHUR@GMAIL.COM
+ * UID: 904606576
+ */
+
+
+
 #include <stdio.h>
 #include "mraa/aio.h"
 #include <math.h>
