@@ -1,5 +1,5 @@
 #include <stdio.h>
-//#include "mraa/aio.h"
+#include "mraa/aio.h"
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
@@ -11,13 +11,13 @@ const int R0 = 100000; // R0 = 100k
 #define FAHR 0
 #define CELS 1
 
-double read_temperature(mraa_aio_context temp, int mode){
-  if(temp == NULL){
+double read_temperature(mraa_aio_context* temp, int mode){
+  if(*temp == NULL){
     fprintf(stderr, "MRAA structure NULL.\n");
     exit(1);
   }
 
-  int a = mraa_aio_read(temp);
+  int a = mraa_aio_read(*temp);
   double R = 1023.0/a-1.0;
   R = R0*R;
 
@@ -36,9 +36,9 @@ double read_temperature(mraa_aio_context temp, int mode){
 
 }
 
-void init(mraa_aio_context t_sensor){
-  t_sensor = mraa_aio_init(0);
-  if(t_sensor == NULL){
+void init(mraa_aio_context* t_sensor){
+  *t_sensor = mraa_aio_init(0);
+  if(*t_sensor == NULL){
     fprintf(stderr, "Failed to initialize sensor.\n");
     exit(1);
   }
@@ -48,7 +48,7 @@ int main(){
   unsigned int seconds = 1;  // COMMAND LINE ARGUMENT
   int mode = FAHR;           // COMMAND LINE ARGUMENT
   mraa_aio_context t_sensor;
-  init(t_sensor);
+  init(&t_sensor);
 
   time_t rawtime;
   struct tm* timeinfo;
@@ -58,7 +58,7 @@ int main(){
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     
-    printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, read_temperature(t_sensor, mode));
+    printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, read_temperature(&t_sensor, mode));
     sleep(seconds);
   }
   
