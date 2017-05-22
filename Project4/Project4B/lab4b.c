@@ -2,6 +2,7 @@
 #include "mraa/aio.h"
 #include <math.h>
 #include <unistd.h>
+#include <time.h>
 
 const int B = 4275; // B value of the thermistor
 const int R0 = 100000; // R0 = 100k
@@ -23,7 +24,7 @@ float read_temperature(mraa_aio_context* temp){
 }
 
 void init(mraa_aio_context* t_sensor){
-  t_sensor = mraa_aio_init(0);
+  *t_sensor = mraa_aio_init(0);
   if(t_sensor == NULL){
     fprintf(stderr, "Failed to initialize sensor.\n");
     exit(1);
