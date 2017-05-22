@@ -157,6 +157,8 @@ int main(int argc, char** argv){
 	}      
       }while(fd.revents & POLLIN);
       
+      buff = (char *) realloc(buff, size + 1);
+      buff[size] = 0;      
       const char nl[2] = "\n";
       char * token = strtok(buff, nl);
       while(token != NULL){
@@ -174,8 +176,8 @@ int main(int argc, char** argv){
 	  else{
 	    bad_input();
 	  }
-	}else if(strcmp(token, "PERIOD=", 7) == 0 && strlen(token) > 7){
-	  seconds = atoi(token + 8);
+	}else if(strncmp(token, "PERIOD=", 7) == 0 && strlen(token) > 7){
+	  seconds = atoi(token + 7);
 	  if(seconds <= 0)
 	    bad_input();
 	}else{
