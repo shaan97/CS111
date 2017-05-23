@@ -133,7 +133,7 @@ int main(int argc, char** argv){
     if(logfd != -1)
       dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 
-    if(poll(fd, 1, NULL) < 0){
+    if(poll(&fd, 1, NULL) < 0){
       fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
       exit(1);
     }
@@ -150,7 +150,13 @@ int main(int argc, char** argv){
 	
 	if(size >= capacity)
 	  buff = (char *) realloc(buff, (capacity *= 2));
-      }while(1);
+
+	if(poll(&fd, 1, NULL) < 0){
+	  fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
+	  exit(1);
+	}      
+      }while(fd.revents & POLLIN);
+      
       const char nl[2] = "\n";
       char * token = strtok(buff, nl);
       while(token != NULL){
