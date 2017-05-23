@@ -61,13 +61,16 @@ void print_usage(){
 
 }
 
-void shutdown(){
+void shutdown(int logfd){
   time_t rawtime;
   struct tm* timeinfo;
   time(&rawtime);
   timeinfo = localtime(&rawtime);
 
   printf("%02d:%02d:%02d SHUTDOWN\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+  if(logfd != -1)
+    dprintf(logfd, "%02d:%02d:%02d SHUTDOWN\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+  
   exit(1);
 }
 
@@ -136,7 +139,7 @@ int main(int argc, char** argv){
   
   while(1){
     if(mraa_gpio_read(button))
-      shutdown();
+      shutdown(logfd);
 
     
     
@@ -148,6 +151,7 @@ int main(int argc, char** argv){
     
 
     if(fd.revents & POLLIN){
+      // Put input into buffer
       int size = 0;
       int capacity = 1024;
       char * buff = (char *) malloc(sizeof(char) * capacity);
@@ -168,11 +172,16 @@ int main(int argc, char** argv){
       
       buff = (char *) realloc(buff, size + 1);
       buff[size] = 0;      
+
+      // Break input into token seperated by newline
       const char nl[2] = "\n";
       char * token = strtok(buff, nl);
       while(token != NULL){
 	if(strcmp(token, "OFF") == 0){
-	  shutdown();
+	  if(logfd != -1)
+	    dprintf(logfd, "OFF\n");
+
+	  shutdown(logfd);
 	}else if(strcmp(token, "STOP") == 0){
 	  running = 0;
 	}else if(strcmp(token, "START") == 0){
@@ -198,10 +207,12 @@ int main(int argc, char** argv){
 	token = strtok(NULL, nl);
       }
     }
+
+
+    // Update time if needed
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     float tmp = read_temperature(&t_sensor, mode);
-
     
     if(running && rawtime - prev >= seconds){
       printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
