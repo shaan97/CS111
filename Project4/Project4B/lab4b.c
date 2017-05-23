@@ -6,6 +6,8 @@
 #include <mraa.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <poll.h>
+#include <errno.h>
 
 const int B = 4275; // B value of the thermistor
 const int R0 = 100000; // R0 = 100k
@@ -50,6 +52,22 @@ void print_usage(){
   fprintf(stderr, "Usage: [--period=NUMBER] [--scale=[C or F]] [--log=FILENAME]\n");
 
 }
+
+void shutdown(){
+  time_t rawtime;
+  struct tm* timeinfo;
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
+
+  printf("%02d:%02d:%02d SHUTDOWN\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+  exit(1);
+}
+
+void bad_input(){
+  fprintf(stderr, "Bad input.\n");
+  exit(1);
+}
+
 int main(int argc, char** argv){
   unsigned int seconds = 1;  // COMMAND LINE ARGUMENT
   int mode = FAHR;           // COMMAND LINE ARGUMENT
@@ -98,20 +116,73 @@ int main(int argc, char** argv){
   time_t rawtime;
   struct tm* timeinfo;
 
-  
+  int running = 1;
+  struct pollfd fd;
+  fd.fd = 0;
+  fd.events = POLLIN | POLLHUP | POLLERR;
   
   while(1){
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     
     float tmp = read_temperature(&t_sensor, mode);
-    printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+    if(running == 1)
+      printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 
 
     if(logfd != -1)
       dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-    
-    sleep(seconds);
+
+    if(poll(fd, 1, NULL) < 0){
+      fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerr(errno));
+      exit(1);
+    }
+
+    if((fd.revents & POLLIN) != 0){
+      int size = 0;
+      int capacity = 8;
+      char * buff = (char *) malloc(sizeof(char) * capacity);
+      do{
+	int rc = open(fd.fd, (void *) buff, capacity - size);
+	if(rc <= 0)
+	  break;
+	size += rc;
+	
+	if(size >= capacity)
+	  buff = (char *) realloc(buff, (capacity *= 2));
+      }while(1);
+
+      char * token = strtok(buff, "\n");
+      while(token != NULL){
+	if(strcmp(token, "OFF") == 0){
+	  shutdown();
+	}else if(strcmp(token, "STOP") == 0){
+	  running = 0;
+	}else if(strcmp(token, "START") == 0){
+	  running = 1;
+	}else if(strncmp(token, "SCALE=", 6) == 0 && strlen(token) == 7){
+	  if(token[6] == 'F')
+	    mode = FAHR;
+	  else if(token[6] == 'C')
+	    mode = CELS;
+	  else{
+	    bad_input();
+	  }
+	}else if(strcmp(token, "PERIOD=", 7) == 0 && strlen(token) > 7){
+	  seconds = atoi(token + 8);
+	  if(seconds <= 0)
+	    bad_input();
+	}else{
+	  bad_input();
+	}
+	
+	if(logfd != -1)
+	  dprintf(logfd, "%s\n", token);
+	token = strtok(NULL, "\n");
+      }
+      
+      if(running == 1)
+	sleep(seconds);
   }
   
   return 0;
