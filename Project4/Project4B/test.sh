@@ -4,6 +4,7 @@ make
 
 let errors=0
 
+# Try dummy arguments
 ./lab4b --bogus > /dev/null
 if [ $? -eq 0 ]
 then
@@ -11,6 +12,7 @@ then
    let errors=errors+1
 fi
 
+# Try basic program
 ./lab4b --log=log.txt <<-EOF
 PERIOD=2
 SCALE=C
@@ -25,6 +27,7 @@ then
     let errors=errors+1
 fi
 
+# Look for output in STDERR
 touch error.txt
 ./lab4b --period=2 --log=log.txt > /dev/null 2> error.txt <<-EOF
 OFF
@@ -36,6 +39,7 @@ then
     let errors=errors+1
 fi
 
+# Again, Look for output with a different permutation of args
 ./lab4b --scale=C --log=log.txt > /dev/null 2> error.txt <<-EOF
 OFF
 EOF
@@ -46,6 +50,7 @@ then
     let errors=errors+1
 fi
 
+# Print total number of errors
 if [ $errors -eq 0 ]
 then
     echo "Success!"
