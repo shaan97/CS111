@@ -131,25 +131,30 @@ int main(int argc, char** argv){
   fd.events = POLLIN | POLLHUP | POLLERR;
   
   while(1){
+    if(mraa_gpio_read(button))
+      shutdown();
+
+    
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    
     float tmp = read_temperature(&t_sensor, mode);
+
+    
     if(running == 1)
       printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-
 
     if(logfd != -1)
       dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 
+    
     if(poll(&fd, 1, NULL) < 0){
       fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
       exit(1);
     }
 
-    if((fd.revents & POLLIN) != 0){
+    if(fd.revents & POLLIN){
       int size = 0;
-      int capacity = 8;
+      int capacity = 1024;
       char * buff = (char *) malloc(sizeof(char) * capacity);
       do{
 	int rc = read(fd.fd, (void *) buff, capacity - size);
