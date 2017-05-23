@@ -13,11 +13,16 @@ float read_temperature(mraa_aio_context* temp){
     exit(1);
   }
 
-  int read = mraa_aio_read(*temp);
-  float R = 1023.0/read - 1.0;
-  R *= R0;
+  int a = mraa_aio_read(*temp);
+  float R = 1023.0/a-1.0;
+  R = R0*R;
 
-  float temperature = 1.0/(log(R/R0)/B + 1/298.15)-273.15;
+  float temperature = 1.0/(log(R/R0)/B+1/298.15)-273.15; // convert to temperature via datasheet
+  
+  //float R = 1023.0/read - 1.0;
+  //R *= R0;
+
+  //float temperature = 1.0/(log(R/R0)/B + 1/298.15)-273.15;
 
   return temperature;
 
