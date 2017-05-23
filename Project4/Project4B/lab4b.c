@@ -136,8 +136,22 @@ int main(int argc, char** argv){
 
   time(&rawtime);
   timeinfo = localtime(&rawtime);
-  time_t prev = timeinfo->tm_sec;
-  
+  time_t prev;
+  float tmp = read_temperature(&t_sensor, mode);
+
+  // Run first initially to make sure at least one message is printed.
+  if(tmp >= 10.0)
+    printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+  else
+    printf("%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min,timeinfo->tm_sec, tmp);
+  if(logfd != -1){
+    if(tmp >= 10.0)
+      dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+    else
+      dprintf(logfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+  }
+  prev = rawtime;
+ 
   while(1){
     if(mraa_gpio_read(button))
       shutdown(logfd);
@@ -213,7 +227,7 @@ int main(int argc, char** argv){
     // Update time if needed
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    float tmp = read_temperature(&t_sensor, mode);
+    tmp = read_temperature(&t_sensor, mode);
     
     if(running && rawtime - prev >= seconds){
       	if(tmp >= 10.0)
