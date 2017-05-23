@@ -23,7 +23,7 @@ float read_temperature(mraa_aio_context* temp){
 }
 
 void init(mraa_aio_context* t_sensor){
-  t_sensor = mraa_aio_init(0);
+  *t_sensor = mraa_aio_init(0);
   if(t_sensor == NULL){
     fprintf(stderr, "Failed to initialize sensor.\n");
     exit(1);
@@ -44,7 +44,7 @@ int main(){
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     
-    printf("%02d:%02d:%02d %.1f\n", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, read_temperature(&t_sensor));
+    printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, read_temperature(&t_sensor));
     sleep(seconds);
   }
   
