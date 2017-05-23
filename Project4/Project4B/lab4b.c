@@ -40,12 +40,20 @@ double read_temperature(mraa_aio_context* temp, int mode){
 
 }
 
-void init(mraa_aio_context* t_sensor){
+void init(mraa_aio_context* t_sensor, mraa_gpio_context * button){
   *t_sensor = mraa_aio_init(0);
   if(*t_sensor == NULL){
     fprintf(stderr, "Failed to initialize sensor.\n");
     exit(1);
   }
+
+  *button = mraa_gpio_init(3);
+  if(*button == NULL){
+    fprintf(stderr, "Failed to initialize button.\n");
+    exit(1);
+  }
+
+  mraa_gpio_dir(*button, MRAA_GPIO_IN);
 }
 
 void print_usage(){
@@ -111,7 +119,8 @@ int main(int argc, char** argv){
     }
   }
   mraa_aio_context t_sensor;
-  init(&t_sensor);
+  mraa_gpio_context button;
+  init(&t_sensor, &button);
 
   time_t rawtime;
   struct tm* timeinfo;
