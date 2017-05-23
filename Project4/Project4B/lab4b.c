@@ -7,17 +7,17 @@
 const int B = 4275; // B value of the thermistor
 const int R0 = 100000; // R0 = 100k
 
-float read_temperature(mraa_aio_context* temp){
+double  read_temperature(mraa_aio_context* temp){
   if(*temp == NULL){
     fprintf(stderr, "MRAA structure NULL.\n");
     exit(1);
   }
 
   int a = mraa_aio_read(*temp);
-  float R = 1023.0/a-1.0;
+  double R = 1023.0/a-1.0;
   R = R0*R;
 
-  float temperature = 1.0/(log(R/R0)/B+1/298.15)-273.15; // convert to temperature via datasheet
+  double temperature = 1.0/(log(R/R0)/B+1/298.15)-273.15; // convert to temperature via datasheet
   
   //float R = 1023.0/read - 1.0;
   //R *= R0;
