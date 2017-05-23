@@ -10,7 +10,7 @@ const int R0 = 100000; // R0 = 100k
 #define FAHR 0
 #define CELS 1
 
-double  read_temperature(mraa_aio_context* temp, int mode){
+double  read_temperature(struct mraa_aio_context* temp, int mode){
   if(*temp == NULL){
     fprintf(stderr, "MRAA structure NULL.\n");
     exit(1);
@@ -35,7 +35,7 @@ double  read_temperature(mraa_aio_context* temp, int mode){
 
 }
 
-void init(mraa_aio_context* t_sensor){
+void init(struct mraa_aio_context* t_sensor){
   *t_sensor = mraa_aio_init(0);
   if(*t_sensor == NULL){
     fprintf(stderr, "Failed to initialize sensor.\n");
@@ -46,7 +46,7 @@ void init(mraa_aio_context* t_sensor){
 int main(){
   unsigned int seconds = 1;  // COMMAND LINE ARGUMENT
   int mode = FAHR;           // COMMAND LINE ARGUMENT
-  mraa_aio_context t_sensor;
+  struct mraa_aio_context t_sensor;
   init(&t_sensor);
 
   time_t rawtime;
