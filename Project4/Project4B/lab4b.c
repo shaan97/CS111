@@ -30,7 +30,7 @@ double  read_temperature(mraa_aio_context* temp){
 
 void init(mraa_aio_context* t_sensor){
   *t_sensor = mraa_aio_init(0);
-  if(t_sensor == NULL){
+  if(*t_sensor == NULL){
     fprintf(stderr, "Failed to initialize sensor.\n");
     exit(1);
   }
