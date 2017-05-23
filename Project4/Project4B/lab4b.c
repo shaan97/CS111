@@ -129,31 +129,23 @@ int main(int argc, char** argv){
   struct pollfd fd;
   fd.fd = 0;
   fd.events = POLLIN | POLLHUP | POLLERR;
+
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
+  time_t prev = timeinfo->tm_sec;
   
   while(1){
     if(mraa_gpio_read(button))
       shutdown();
 
     
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    float tmp = read_temperature(&t_sensor, mode);
-
-    
-    if(running == 1)
-      printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-
-    if(logfd != -1)
-      dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-
     
     if(poll(&fd, 1, NULL) < 0){
       fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
       exit(1);
     }
 
-    if(running == 1)
-	sleep(seconds);
+    
 
     if(fd.revents & POLLIN){
       int size = 0;
@@ -206,6 +198,19 @@ int main(int argc, char** argv){
 	token = strtok(NULL, nl);
       }
     }
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    float tmp = read_temperature(&t_sensor, mode);
+
+    while(rawtime - prev < seconds);
+    prev = rawtime;
+    if(running == 1)
+      printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+
+    if(logfd != -1)
+      dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+
+    
   }
   
   return 0;
