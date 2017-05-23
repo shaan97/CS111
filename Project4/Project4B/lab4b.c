@@ -1,5 +1,5 @@
 #include <stdio.h>
-//#include "mraa/aio.h"
+#include "mraa/aio.h"
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
@@ -44,9 +44,52 @@ void init(mraa_aio_context t_sensor){
   }
 }
 
+void print_usage(){
+  fprintf(stderr, "Usage: [--period=NUMBER] [--scale=[C or F]] [--log=FILENAME]\n");
+
+}
 int main(){
   unsigned int seconds = 1;  // COMMAND LINE ARGUMENT
   int mode = FAHR;           // COMMAND LINE ARGUMENT
+  int log_fd = -1;
+  static struct option l_options[] = {
+    {"period", required_argument, NULL, 'p'},
+    {"scale", required_argument, NULL, 's'},
+    {"log", required_argument, NULL, 'l'},
+    {0, 0, 0, 0}
+  };
+
+  
+  char c;
+  
+  while( (c = getopt_long(argc, argv, "p:s:l:", l_options, NULL)) != -1 ){
+    switch(c){
+    case 'p':
+      seconds = atoi(optarg);
+      break;
+    case 's':
+      if(strlen(optarg) != 1){
+	print_usage();
+	exit(1);
+      }
+      char m = optarg[0];
+      switch(m){
+      case 'C':
+	mode = CELS;
+	break;
+      case 'F':
+	mode = FAHR;
+	break;
+      default:
+	print_usage();
+	exit(1);
+      }
+      break;
+    case 'l':
+      log_fd = open(optarg, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IRWUSR | S_IRGRP | S_IWGRP | S_IROTH | SIWOTH);
+      break;
+    }
+  }
   mraa_aio_context t_sensor;
   init(t_sensor);
 
@@ -54,11 +97,16 @@ int main(){
   struct tm* timeinfo;
 
   
+  
   while(1){
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     
     printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, read_temperature(t_sensor, mode));
+
+    if(logfd != -1)
+      dprintf(logfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, read_temperature(t_sensor, mode));
+    
     sleep(seconds);
   }
   
