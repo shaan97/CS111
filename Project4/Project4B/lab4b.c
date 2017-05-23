@@ -152,6 +152,9 @@ int main(int argc, char** argv){
       exit(1);
     }
 
+    if(running == 1)
+	sleep(seconds);
+
     if(fd.revents & POLLIN){
       int size = 0;
       int capacity = 1024;
@@ -201,8 +204,6 @@ int main(int argc, char** argv){
 	token = strtok(NULL, nl);
       }
     }
-      if(running == 1)
-	sleep(seconds);
   }
   
   return 0;
