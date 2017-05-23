@@ -2,6 +2,7 @@
 #include "mraa/aio.h"
 #include <math.h>
 #include <unistd.h>
+#include <time.h>
 
 const int B = 4275; // B value of the thermistor
 const int R0 = 100000; // R0 = 100k
