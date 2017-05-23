@@ -87,7 +87,7 @@ void bad_input(){
   exit(1);
 }
 
-void close(mraa_aio_context* a, mraa_gpio_context* b){
+void close_sensors(mraa_aio_context* a, mraa_gpio_context* b){
   mraa_aio_close(*a);
   mraa_gpio_close(*b);
 }
@@ -170,7 +170,7 @@ int main(int argc, char** argv){
  
   while(1){
     if(mraa_gpio_read(button)){
-      close(&t_sensor, &button);
+      close_sensors(&t_sensor, &button);
       shutdown(logfd);
     }
 
@@ -178,7 +178,7 @@ int main(int argc, char** argv){
     
     if(poll(&fd, 1, 0) < 0){
       fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
-      close(&t_sensor, &button);
+      close_sensors(&t_sensor, &button);
       exit(1);
     }
 
@@ -200,7 +200,7 @@ int main(int argc, char** argv){
 
 	if(poll(&fd, 1, 0) < 0){
 	  fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
-	  close(&t_sensor, &button);
+	  close_sensors(&t_sensor, &button);
 	  exit(1);
 	}      
       }while(fd.revents & POLLIN);
@@ -215,7 +215,7 @@ int main(int argc, char** argv){
 	if(strcmp(token, "OFF") == 0){
 	  if(logfd != -1)
 	    dprintf(logfd, "OFF\n");
-	  close(&t_sensor, &button);
+	  close_sensors(&t_sensor, &button);
 	  shutdown(logfd);
 	}else if(strcmp(token, "STOP") == 0){
 	  running = 0;
@@ -227,17 +227,17 @@ int main(int argc, char** argv){
 	  else if(token[6] == 'C')
 	    mode = CELS;
 	  else{
-	    close(&t_sensor, &button);
+	    close_sensors(&t_sensor, &button);
 	    bad_input();
 	  }
 	}else if(strncmp(token, "PERIOD=", 7) == 0 && strlen(token) > 7){
 	  seconds = atoi(token + 7);
 	  if(seconds <= 0){
-	    close(&t_sensor, &button);
+	    close_sensors(&t_sensor, &button);
 	    bad_input();
 	  }
 	}else{
-	  close(&t_sensor, &button);
+	  close_sensors(&t_sensor, &button);
 	  bad_input();
 	}
 	
@@ -268,6 +268,6 @@ int main(int argc, char** argv){
     }
   }
   
-  close(&t_sensor, &button);
+  close_sensors(&t_sensor, &button);
   return 0;
 }
