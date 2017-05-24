@@ -82,8 +82,10 @@ void shutdown(int logfd){
   exit(0);
 }
 
-void bad_input(){
+void bad_input(int logfd){
   fprintf(stderr, "Bad input.\n");
+  if(logfd != -1)
+    dprintf(logfd, "Bad input.\n");
   exit(1);
 }
 
@@ -228,17 +230,17 @@ int main(int argc, char** argv){
 	    mode = CELS;
 	  else{
 	    close_sensors(&t_sensor, &button);
-	    bad_input();
+	    bad_input(logfd);
 	  }
 	}else if(strncmp(token, "PERIOD=", 7) == 0 && strlen(token) > 7){
 	  seconds = atoi(token + 7);
 	  if(seconds <= 0){
 	    close_sensors(&t_sensor, &button);
-	    bad_input();
+	    bad_input(logfd);
 	  }
 	}else{
 	  close_sensors(&t_sensor, &button);
-	  bad_input();
+	  bad_input(logfd);
 	}
 	
 	if(logfd != -1)
