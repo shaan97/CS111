@@ -36,7 +36,7 @@ double read_temperature(mraa_aio_context* temp, int mode){
   double temperature = 1.0/(log(R/R0)/B+1/298.15)-273.15; // convert to temperature via datasheet
 
   if(mode == FAHR){
-    temperature = temperature * 1.5 + 32;
+    temperature = temperature * 1.8 + 32;
 
   }
   //float R = 1023.0/read - 1.0;
