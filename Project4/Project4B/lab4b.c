@@ -247,6 +247,12 @@ int main(int argc, char** argv){
       }
     }
 
+    if(fd.revents & (POLLHUP | POLLERR)){
+      close_sensors(&t_sensor, &button);
+      fprintf(stderr, "Received POLLHUP or POLLERR from STDIN");
+      exit(1);
+    }
+
 
     // Update time if needed
     time(&rawtime);
