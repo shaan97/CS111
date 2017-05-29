@@ -93,18 +93,23 @@ void getTime(time_t time, stringstream &ss){
   struct tm* timeinfo;
   timeinfo = gmtime(&time);
   ss << std::setfill('0') << std::setw(2)
-     << timeinfo->tm_mon << "/"
+     << timeinfo->tm_mon + 1<< "/"
+     << std::setfill('0') << std::setw(2) 
      << timeinfo->tm_mday << "/"
-     << timeinfo->tm_year + 1990 << " "
+     << std::setfill('0') << std::setw(2) 
+     << (timeinfo->tm_year + 1900) % 100 << " "
+     << std::setfill('0') << std::setw(2) 
      << timeinfo->tm_hour << ":"
+     << std::setfill('0') << std::setw(2) 
      << timeinfo->tm_min << ":"
+     << std::setfill('0') << std::setw(2) 
      << timeinfo->tm_sec << ",";
 }
 
 void process_inode(const ext2_inode &inode, int inode_number){
   stringstream ss;
   if (inode.i_mode != 0 && inode.i_links_count != 0){
-    ss << "INODE," << inode_number << ",";
+    ss << "INODE," << inode_number+1 << ",";
     if (S_ISREG(inode.i_mode))
       ss << "f,";
     else if (S_ISDIR(inode.i_mode))
