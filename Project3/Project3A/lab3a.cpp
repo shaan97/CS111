@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "EXT2_info.h"
+#include <sstream>
 
 using namespace std;
 
@@ -54,9 +55,18 @@ int Open(const char * pathname, int flags){
 void getSuperblock(EXT2_info& info){
   info.super_block = new ext2_super_block;
   ssize_t rc = Pread(info.image_fd, info.super_block, sizeof(ext2_super_block), SUPERBLOCK_OFFSET);
+
+  // Build stringstream to gather data
   stringstream ss;
-  ss << "SUPERBLOCK," << info.super_block->s_blocks_count << "," << info.super_block->s_inodes_count << ","
-     << (EXT2_MIN_BLOCK_SIZE << info.super_block->
+  ss << "SUPERBLOCK," << info.super_block->s_blocks_count << ","
+     << info.super_block->s_inodes_count << ","
+     << (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size) << ","
+     << info.super_block->s_inode_size << ","
+     << info.super_block->s_blocks_per_group << ","
+     << info.super_block->s_inodes_per_group << ","
+     << info.super_block->s_first_ino << endl;
+
+  Print(ss.str());  // Print data into file
 }
 
 // Collects group descirptor table information, using computed offset given in super block
