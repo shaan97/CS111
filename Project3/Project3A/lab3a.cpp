@@ -13,10 +13,10 @@ void Print(std::string message){
   static bool init = false;
   if (init == false)
     {
-      std::ofstream file ("lab3a.csv", std::ofstream::trunc);
-      bool init = true;
+      file.open("lab3a.csv", std::ofstream::trunc);
+      init = true;
     }
-  file << message << endl;
+  file << message;
 }
 
 string get_file_name(int argc, char *argv[]){
@@ -31,7 +31,7 @@ string get_file_name(int argc, char *argv[]){
 int main(int argc, char *argv[])
 {
   string file = get_file_name(argc, argv);
-  
-  
+
+
   return 0;
 }
