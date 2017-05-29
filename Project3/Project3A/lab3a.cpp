@@ -92,24 +92,38 @@ inline char getBit(char * buffer, __u32 i){
   return (buffer[ i / (8 * sizeof(char)) ] & (0x1 << (i % (8 * sizeof(char))) ));
 }
 
-// Collects free block information using data bitmap
-void getFreeBlock(const EXT2_info &info) {
+// Helper function for printing analysis for free block bitmap and free inode bitmap
+void analyze_bitmap(const EXT2_info& info, char * buffer, off_t offset, string type){
   __u32 b_size = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
-  off_t offset = SUPERBLOCK_OFFSET + (info.des_table->bg_block_bitmap - 1) * b_size;
-  char * buffer = new char[b_size];
-  
   ssize_t rc = Pread(info.image_fd, buffer, b_size, offset);
-  
+
   stringstream ss;
   for(__u32 i = 0; i < b_size; i++){
     if(!getBit(buffer, i)){
-      ss << "BFREE," << (i + 1) << endl;
+      ss << type << (i + 1) << endl;
       Print(ss.str());
       ss.str(std::string()); // Clear stream
     }
   }
   
 }
+
+// Collects free block information using data bitmap
+void getFreeBlock(const EXT2_info &info) {
+  __u32 b_size = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
+  off_t offset = SUPERBLOCK_OFFSET + (info.des_table->bg_block_bitmap - 1) * b_size;
+  char * buffer = new char[b_size];
+  analyze_bitmap(info, buffer, offset, "BFREE,");
+}
+
+// Collects free inode information using inode bitmap
+void getFreeInode(const EXT2_info& info) {
+  __u32 b_size = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
+  off_t offset = SUPERBLOCK_OFFSET + (info.des_table->bg_inode_bitmap - 1) * b_size;
+  char * buffer = new char[b_size];
+  analyze_bitmap(info, buffer, offset, "IFREE,");
+}
+
 int main(int argc, char *argv[])
 {
   string file = get_file_name(argc, argv);
@@ -119,6 +133,7 @@ int main(int argc, char *argv[])
   getSuperblock(info);
   getGroupDescriptor(info);
   getFreeBlock(info);
+  getFreeInode(info);
   
   return 0;
 }
