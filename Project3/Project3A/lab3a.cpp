@@ -5,10 +5,17 @@
 
 using namespace std;
 
-static fstream files[7];
-static bool init;
+static ofstream file;
+static bool init = false;
 
-void Print(
+void Print(std::string message){
+  if (init == false)
+    {
+      std::ofstream file ("lab3a.csv", std::ofstream::trunc);
+      std::bool init = true;
+    }
+  file << message << endl;
+}
 
 string get_file_name(int argc, char *argv[]){
   if(argc != 2){
@@ -17,7 +24,6 @@ string get_file_name(int argc, char *argv[]){
   }
 
   return string(argv[1]);
-
 }
 
 int main(int argc, char *argv[])
