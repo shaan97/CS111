@@ -12,7 +12,7 @@ void Print(std::string message){
   if (init == false)
     {
       std::ofstream file ("lab3a.csv", std::ofstream::trunc);
-      std::bool init = true;
+      bool init = true;
     }
   file << message << endl;
 }
