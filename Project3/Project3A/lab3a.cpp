@@ -10,11 +10,13 @@
 #include <fcntl.h>
 #include "EXT2_info.h"
 #include <sstream>
+#include <ctime>
+#include <iomanip>
 
 using namespace std;
 
 
-void Print(std::string message){
+void Print(const std::string message){
   static ofstream file;
   static bool init = false;
   if (init == false)
@@ -83,6 +85,55 @@ void getGroupDescriptor(EXT2_info &info){
      << info.des_table->bg_inode_bitmap << ","
      << info.des_table->bg_inode_table << endl;
   Print(ss.str());
+}
+
+void getTime(time_t time, stringstream &ss){
+  struct tm* timeinfo;
+  timeinfo = gmtime(&time);
+  ss << std::setfill('0') << std::setw(2)
+     << timeinfo->tm_mon << "/"
+     << timeinfo->tm_mday << "/"
+     << timeinfo->tm_year + 1990 << " "
+     << timeinfo->tm_hour << ":"
+     << timeinfo->tm_min << ":"
+     << timeinfo->tm_sec << ",";
+}
+
+void process_inode(const ext2_inode &inode, int inode_number){
+  stringstream ss;
+  if (inode.i_mode != 0 && inode.i_links_count != 0){
+    ss << "INODE," << inode_number << ",";
+    if (S_ISREG(inode.i_mode))
+      ss << "f,";
+    else if (S_ISDIR(inode.i_mode))
+      ss << "d,";
+    else if (S_ISLNK(inode.i_mode))
+      ss << "s,";
+    else
+      ss << "?,";
+    __u32 mode = inode.i_mode & 0xC;
+    ss << std::oct << mode << ","
+       << std::dec << inode.i_uid << ","
+       << inode.i_gid << ","
+       << inode.i_links_count << ",";
+    getTime(inode.i_ctime, ss);
+    getTime(inode.i_mtime, ss);
+    getTime(inode.i_atime, ss);
+    ss << inode.i_size << "," << inode.i_blocks << endl;
+    Print(ss.str());
+  }
+}
+
+void getInode(const EXT2_info &info){
+  off_t offset = SUPERBLOCK_OFFSET + ( (info.des_table->bg_inode_table - 1) * (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size));
+  __u32 inodes_per_block = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size) / sizeof(ext2_inode);
+  __u32 inodes_blocks = info.super_block->s_inodes_per_group / inodes_per_block;
+  __u32 size = inodes_blocks * (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
+  ext2_inode* inode_table = new ext2_inode[size/sizeof(ext2_inode)];
+  ssize_t rc = Pread(info.image_fd, inode_table, size, offset);
+  for (int i = 0; i < size/sizeof(ext2_inode); i++) {
+    process_inode(inode_table[i], i);
+  }
 }
 
 int main(int argc, char *argv[])
