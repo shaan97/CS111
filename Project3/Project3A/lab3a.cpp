@@ -118,15 +118,23 @@ void process_inode(const ext2_inode &inode, int inode_number){
       ss << "s,";
     else
       ss << "?,";
-    __u32 mode = inode.i_mode & 0xC;
-    ss << std::oct << mode << ","
+    //__u32 mode = inode.i_mode & 0xC;
+    ss << std::oct << (inode.i_mode & 0x1FF) << ","
        << std::dec << inode.i_uid << ","
        << inode.i_gid << ","
        << inode.i_links_count << ",";
     getTime(inode.i_ctime, ss);
     getTime(inode.i_mtime, ss);
     getTime(inode.i_atime, ss);
-    ss << inode.i_size << "," << inode.i_blocks << endl;
+    ss << inode.i_size << ","
+       << inode.i_blocks << ",";
+    for (int i = 0; i < EXT2_N_BLOCKS; i++){
+      if (i == EXT2_N_BLOCKS - 1)
+	ss << inode.i_block[i];
+      else
+	ss << inode.i_block[i] << ",";
+    }
+    ss << endl;
     Print(ss.str());
   }
 }
