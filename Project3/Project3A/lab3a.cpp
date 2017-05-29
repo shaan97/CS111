@@ -14,7 +14,7 @@
 using namespace std;
 
 
-void Print(std::string message){
+void Print(const std::string message){
   static ofstream file;
   static bool init = false;
   if (init == false)
@@ -75,10 +75,41 @@ void getGroupDescriptor(EXT2_info &info){
   off_t offset = SUPERBLOCK_OFFSET + (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
   ssize_t rc = Pread(info.image_fd, info.des_table, sizeof(ext2_group_desc), offset);
   stringstream ss;
-  ss << "GROUP,0," << info.super_block->s_blocks_per_group << "," << info.super_block->s_inodes_per_group << "," << info.des_table->bg_free_blocks_count << "," << info.des_table->bg_free_inodes_count << "," << info.des_table->bg_block_bitmap << "," << info.des_table->bg_inode_bitmap << "," << info.des_table->bg_inode_table;
+  ss << "GROUP,0," << info.super_block->s_blocks_per_group << ","
+     << info.super_block->s_inodes_per_group << ","
+     << info.des_table->bg_free_blocks_count << ","
+     << info.des_table->bg_free_inodes_count << ","
+     << info.des_table->bg_block_bitmap << ","
+     << info.des_table->bg_inode_bitmap << ","
+     << info.des_table->bg_inode_table;
+
   Print(ss.str());
 }
 
+
+// @return Nonzero if bit is active, 0 otherwise.
+inline char getBit(char * buffer, __u32 i){
+  return (buffer[ i / (8 * sizeof(char)) ] & (0x1 << (i % (8 * sizeof(char))) ));
+}
+
+// Collects free block information using data bitmap
+void getFreeBlock(const EXT2_info &info) {
+  __u32 b_size = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
+  off_t offset = SUPERBLOCK_OFFSET + (info.des_table->bg_block_bitmap - 1) * b_size;
+  char * buffer = new char[b_size];
+  
+  ssize_t rc = Pread(info.image_fd, buffer, b_size, offset);
+  
+  stringstream ss;
+  for(__u32 i = 0; i < b_size; i++){
+    if(!getBit(buffer, i)){
+      ss << "BFREE," << (i + 1) << endl;
+      Print(ss.str());
+      ss.str(std::string()); // Clear stream
+    }
+  }
+  
+}
 int main(int argc, char *argv[])
 {
   string file = get_file_name(argc, argv);
@@ -87,6 +118,7 @@ int main(int argc, char *argv[])
 
   getSuperblock(info);
   getGroupDescriptor(info);
+  getFreeBlock(info);
   
   return 0;
 }
