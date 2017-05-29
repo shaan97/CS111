@@ -7,6 +7,7 @@
 struct EXT2_info{
   ext2_super_block super_block;
   ext2_group_desc des_table;
+  int image_fd;
 };
 
 
