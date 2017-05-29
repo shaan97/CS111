@@ -5,10 +5,12 @@
 
 using namespace std;
 
-static ofstream file;
-static bool init = false;
+
+
 
 void Print(std::string message){
+  static ofstream file;
+  static bool init = false;
   if (init == false)
     {
       std::ofstream file ("lab3a.csv", std::ofstream::trunc);
