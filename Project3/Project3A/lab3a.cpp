@@ -76,7 +76,7 @@ void getGroupDescriptor(EXT2_info &info){
   ssize_t rc = Pread(info.image_fd, info.des_table, sizeof(ext2_group_desc), offset);
   stringstream ss;
   ss << "GROUP,0," << info.super_block->s_blocks_per_group << "," << info.super_block->s_inodes_per_group << "," << info.des_table->bg_free_blocks_count << "," << info.des_table->bg_free_inodes_count << "," << info.des_table->bg_block_bitmap << "," << info.des_table->bg_inode_bitmap << "," << info.des_table->bg_inode_table;
-  Print(ss);
+  Print(ss.str());
 }
 
 int main(int argc, char *argv[])
