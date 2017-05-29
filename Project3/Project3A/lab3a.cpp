@@ -17,6 +17,7 @@ using namespace std;
 
 
 void Print(const std::string message){
+  /*
   static ofstream file;
   static bool init = false;
   if (init == false)
@@ -24,7 +25,8 @@ void Print(const std::string message){
       file.open("lab3a.csv", std::ofstream::trunc);
       init = true;
     }
-  file << message;
+  */
+  cout << message;
 }
 
 ssize_t Pread(int fd, void *buf, size_t count, off_t offset)
