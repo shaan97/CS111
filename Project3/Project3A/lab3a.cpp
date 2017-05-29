@@ -139,6 +139,69 @@ void process_inode(const ext2_inode &inode, int inode_number){
   }
 }
 
+int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int level, int block, int prev_block) {
+  // Read into __u32 buffer the current block
+  int b_size = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
+  int offset = SUPERBLOCK_OFFSET + (block - 1) * b_size;
+  __u32* buffer = new __u32[b_size / sizeof(__u32)];
+  Pread(info.image_fd, buffer, b_size / sizeof(__u32), offset);
+
+
+  // We are at a direct pointer block
+
+  stringstream ss;
+ 
+  int first_offset = -1; // Remember first valid offset
+    
+  // For every entry so long as it is nonzero, print appropriate information
+  for(int i = 0; i < b_size / sizeof(__u32) && buffer[i]; i++) {
+    if(level == 0)
+      offset = block;//SUPERBLOCK_OFFSET + (buffer[i] - 1) * b_size;
+    else
+      offset = process_indirect(info, inode, index, level - 1, buffer[i], block);
+
+    
+    if(first_offset == -1) {
+      first_offset = offset;
+    }
+    
+    ss << "INDIRECT," << index + 1 << ","
+       << level + 1 << ","
+       << offset << ","
+       << prev_block << ","
+       << buffer[i] << endl;
+    Print(ss.str());
+    ss.str(std::string()); // Clears sstream
+    
+  }
+  
+  return first_offset;
+  
+ 
+}
+
+void getIndirect(const EXT2_info& info, ext2_inode * inode_table, __u32 index) {
+  ext2_inode& inode = inode_table[index];
+  for(int i = 0; i < EXT2_N_BLOCKS && inode.i_block[i]; i++) {
+    switch(i){
+    case EXT2_IND_BLOCK:
+      process_indirect(info, inode, index, 0, inode.i_block[i], info.des_table->bg_inode_table);
+      break;
+    case EXT2_DIND_BLOCK:
+      process_indirect(info, inode, index, 1, inode.i_block[i], info.des_table->bg_inode_table);
+      break;
+    case EXT2_TIND_BLOCK:
+      process_indirect(info, inode, index, 2, inode.i_block[i], info.des_table->bg_inode_table);
+      break;
+    default:
+      //cerr << "Failure during indirect reference data collection." << endl;
+      //exit(2);
+      break;
+    }
+  }
+  
+}
+
 void getInode(const EXT2_info &info){
   off_t offset = SUPERBLOCK_OFFSET + ( (info.des_table->bg_inode_table - 1) * (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size));
   __u32 inodes_per_block = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size) / sizeof(ext2_inode);
@@ -148,6 +211,7 @@ void getInode(const EXT2_info &info){
   ssize_t rc = Pread(info.image_fd, inode_table, size, offset);
   for (int i = 0; i < size/sizeof(ext2_inode); i++) {
     process_inode(inode_table[i], i);
+    getIndirect(info, inode_table, i);
   }
 }
 
