@@ -144,7 +144,7 @@ int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int 
   int b_size = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
   int offset = SUPERBLOCK_OFFSET + (block - 1) * b_size;
   __u32* buffer = new __u32[b_size / sizeof(__u32)];
-  Pread(info.image_fd, buffer, b_size / sizeof(__u32), offset);
+  Pread(info.image_fd, buffer, b_size, offset);
 
 
   stringstream ss;
@@ -152,7 +152,9 @@ int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int 
   int first_offset = -1; // Remember first valid offset
     
   // For every entry so long as it is nonzero, print appropriate information
-  for(int i = 0; i < b_size / sizeof(__u32) && buffer[i]; i++) {
+  for(int i = 0; i < b_size / sizeof(__u32)/* && buffer[i]*/; i++) {
+    if(!info.is_valid_block(buffer[i]))
+      continue;
     if(level == 0){
       total += 1;
       offset = total;//SUPERBLOCK_OFFSET + (buffer[i] - 1) * b_size;
@@ -182,8 +184,9 @@ int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int 
 void getIndirect(const EXT2_info& info, ext2_inode * inode_table, __u32 index) {
   ext2_inode& inode = inode_table[index];
   int total = -1;
-  for(int i = 0; i < EXT2_N_BLOCKS && inode.i_block[i]; i++) {
-    
+  for(int i = 0; i < EXT2_N_BLOCKS/* && inode.i_block[i]*/; i++) {
+    if(!info.is_valid_block(inode.i_block[i]))
+      continue;
     switch(i){
     case EXT2_IND_BLOCK:
       process_indirect(info, inode, index, 0, inode.i_block[i], info.des_table->bg_inode_table, total);
@@ -385,6 +388,7 @@ int main(int argc, char *argv[])
 
   getSuperblock(info);
   getGroupDescriptor(info);
+  info.init_b_map();
   getFreeBlock(info);
   getFreeInode(info);
   getInode(info);
