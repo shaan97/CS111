@@ -204,24 +204,86 @@ void getIndirect(const EXT2_info& info, ext2_inode * inode_table, __u32 index) {
   
 }
 
+void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32 inode_number, __u32 level, __u32 block_number, __u32 &totalsize){
+  __u32 block_size = EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size;
+  __u32 offset = SUPERBLOCK_OFFSET + ((block_number - 1) * block_size);
+  char *buffer = new char[block_size];
+  Pread(info.image_fd, buffer, block_size, offset);
+  stringstream ss;
+  if (level == 3){
+    __u32 index = 0;
+    __u32 *blockNumbers = new __u32[block_size/sizeof(__u32)];
+    blockNumbers = (__u32*) buffer;
+    while (blockNumbers[index] != 0){
+      process_dir_recursive(info, inode, inode_number, 2, blockNumbers[index], totalsize);
+      index++;
+    }
+  }
+  else if (level == 2){
+    __u32 index = 0;
+    __u32 *blockNumbers = new __u32[block_size/sizeof(__u32)];
+    blockNumbers = (__u32*) buffer;
+    while (blockNumbers[index] != 0){
+      process_dir_recursive(info, inode, inode_number, 1, blockNumbers[index], totalsize);
+      index++;
+    }
+  }
+  else if (level == 1){
+    __u32 index = 0;
+    __u32 *blockNumbers = new __u32[block_size/sizeof(__u32)];
+    blockNumbers = (__u32*) buffer;
+    while (blockNumbers[index] != 0){
+      process_dir_recursive(info, inode, inode_number,0, blockNumbers[index], totalsize);
+      index++;
+    }
+  }
+  else if (level == 0){
+    ext2_dir_entry *file;
+    file = (ext2_dir_entry*) buffer;
+    __u32 size = 0;
+    while (totalsize < inode.i_size && file->rec_len != 0 && size + file->rec_len <= block_size){
+      if (file->inode != 0){
+	ss << "DIRENT," << inode_number + 1 << "," << totalsize << ",";
+	char file_name[EXT2_NAME_LEN + 1];
+	ss << file->inode << ","
+	   << file->rec_len << ","
+	   << (int) file->name_len << ",";
+	memcpy(file_name, file->name, file->name_len);
+	file_name[file->name_len] = 0;
+	ss << "'" << file_name << "'" << endl;
+	size += file->rec_len;
+	totalsize += file->rec_len;
+	int amount = file->rec_len;
+	char* temp = reinterpret_cast<char*>(file);
+	temp += amount;
+	file = reinterpret_cast<ext2_dir_entry*>(temp);
+	Print(ss.str());
+	ss.str(std::string());
+      }
+      else
+	break;
+    }
+  }
+  else{
+    cerr << "ERROR" << endl;
+  }
+}
+
 void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_number){
   stringstream ss;
-  //  ss << "DIRENT," << inode_number + 1 << ",";
   __u32 block_number = 0;
   __u32 offset, size, totalsize = 0;
   ext2_dir_entry *file;
-  //char file_name[EXT2_NAME_LEN + 1];
   __u32 block_size = EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size;
   char *buffer = new char[block_size];
-  while (totalsize <= inode.i_size && block_number < EXT2_NDIR_BLOCKS && inode.i_block[block_number] != 0){ //CHECK THESE CONDITIONS WITH SHAAN
+  while (totalsize < inode.i_size && block_number < EXT2_NDIR_BLOCKS && inode.i_block[block_number] != 0){
     bzero(buffer, block_size);
     offset = SUPERBLOCK_OFFSET + ((inode.i_block[block_number] - 1) *block_size);
     Pread(info.image_fd,buffer,block_size,offset);
     size = 0;
     file = (ext2_dir_entry*) buffer;
-    while (totalsize <= inode.i_size && file->rec_len != 0 && size + file->rec_len <= block_size){
+    while (totalsize < inode.i_size && file->rec_len != 0 && size + file->rec_len <= block_size){
       if (file->inode != 0){
-	//BYTE OFFSET OF REFERENCED FILE
 	ss << "DIRENT," << inode_number + 1 << "," << totalsize << ",";
 	char file_name[EXT2_NAME_LEN + 1];
 	ss << file->inode << ","
@@ -241,10 +303,24 @@ void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_num
       }
       else
 	break;
-      //totalsize += file->rec_len;
     }
     block_number++;
   }
+
+  while (totalsize < inode.i_size && block_number < EXT2_N_BLOCKS && inode.i_block[block_number] != 0){
+    if (block_number == EXT2_IND_BLOCK)
+      process_dir_recursive(info, inode, inode_number, 1, inode.i_block[block_number], totalsize);
+    else if (block_number == EXT2_DIND_BLOCK)
+      process_dir_recursive(info, inode, inode_number, 2, inode.i_block[block_number], totalsize);
+    else if (block_number == EXT2_TIND_BLOCK)
+      process_dir_recursive(info, inode, inode_number, 3, inode.i_block[block_number], totalsize);
+    else
+      {
+	cerr << "SOMETHING BAD" << endl;
+      }
+    block_number++;
+  }
+    
 }
 					 
 void getInode(const EXT2_info &info){
