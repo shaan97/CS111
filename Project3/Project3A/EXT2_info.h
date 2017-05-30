@@ -1,13 +1,22 @@
 #ifndef EXT2_INFO_H
 #define EXT2_INFO_H
 
+#include <linux/types.h>
 #include "Ext2_fs.h"
 
 // Keep track of some information between function calls
-struct EXT2_info{
+class EXT2_info{
+ private:
+  char * d_bmap;
+ public:
   ext2_super_block* super_block;
   ext2_group_desc* des_table;
   int image_fd;
+
+  EXT2_info();
+  ~EXT2_info();
+  void init_b_map();
+  bool is_valid_block(__u32 block) const;
 };
 
 
