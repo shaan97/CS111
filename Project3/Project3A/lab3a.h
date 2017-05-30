@@ -17,7 +17,8 @@ void Print(const std::string message);
 void getInode(const EXT2_info &info);
 void getIndirect(const EXT2_info& info, ext2_inode * inode_table, __u32 index);
 ssize_t Pread(int fd, void *buf, size_t count, off_t offset);
-void process_dir();
-
+void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_number);
+void process_inode(const ext2_inode &inode, __u32 inode_number);
+int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int level, int block, int prev_block,  int& total);
 
 #endif

@@ -108,37 +108,35 @@ void getTime(time_t time, stringstream &ss){
      << timeinfo->tm_sec << ",";
 }
 
-void process_inode(const ext2_inode &inode, int inode_number){
+void process_inode(const ext2_inode &inode, __u32 inode_number){
   stringstream ss;
-  if (inode.i_mode != 0 && inode.i_links_count != 0){
-    ss << "INODE," << inode_number+1 << ",";
-    if (S_ISREG(inode.i_mode))
-      ss << "f,";
-    else if (S_ISDIR(inode.i_mode))
-      ss << "d,";
-    else if (S_ISLNK(inode.i_mode))
-      ss << "s,";
+  ss << "INODE," << inode_number+1 << ",";
+  if (S_ISREG(inode.i_mode))
+    ss << "f,";
+  else if (S_ISDIR(inode.i_mode))
+    ss << "d,";
+  else if (S_ISLNK(inode.i_mode))
+    ss << "s,";
+  else
+    ss << "?,";
+  //__u32 mode = inode.i_mode & 0xC;
+  ss << std::oct << (inode.i_mode & 0x1FF) << ","
+     << std::dec << inode.i_uid << ","
+     << inode.i_gid << ","
+     << inode.i_links_count << ",";
+  getTime(inode.i_ctime, ss);
+  getTime(inode.i_mtime, ss);
+  getTime(inode.i_atime, ss);
+  ss << inode.i_size << ","
+     << inode.i_blocks << ",";
+  for (int i = 0; i < EXT2_N_BLOCKS; i++){
+    if (i == EXT2_N_BLOCKS - 1)
+      ss << inode.i_block[i];
     else
-      ss << "?,";
-    //__u32 mode = inode.i_mode & 0xC;
-    ss << std::oct << (inode.i_mode & 0x1FF) << ","
-       << std::dec << inode.i_uid << ","
-       << inode.i_gid << ","
-       << inode.i_links_count << ",";
-    getTime(inode.i_ctime, ss);
-    getTime(inode.i_mtime, ss);
-    getTime(inode.i_atime, ss);
-    ss << inode.i_size << ","
-       << inode.i_blocks << ",";
-    for (int i = 0; i < EXT2_N_BLOCKS; i++){
-      if (i == EXT2_N_BLOCKS - 1)
-	ss << inode.i_block[i];
-      else
-	ss << inode.i_block[i] << ",";
-    }
-    ss << endl;
-    Print(ss.str());
+      ss << inode.i_block[i] << ",";
   }
+  ss << endl;
+  Print(ss.str());
 }
 
 int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int level, int block, int prev_block,  int& total) {
@@ -179,8 +177,6 @@ int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int 
   }
   
   return first_offset;
-  
- 
 }
 
 void getIndirect(const EXT2_info& info, ext2_inode * inode_table, __u32 index) {
@@ -208,6 +204,49 @@ void getIndirect(const EXT2_info& info, ext2_inode * inode_table, __u32 index) {
   
 }
 
+void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_number){
+  stringstream ss;
+  //  ss << "DIRENT," << inode_number + 1 << ",";
+  __u32 block_number = 0;
+  __u32 offset, size, totalsize = 0;
+  ext2_dir_entry *file;
+  //char file_name[EXT2_NAME_LEN + 1];
+  __u32 block_size = EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size;
+  char *buffer = new char[block_size];
+  while (totalsize <= inode.i_size && block_number < EXT2_NDIR_BLOCKS && inode.i_block[block_number] != 0){ //CHECK THESE CONDITIONS WITH SHAAN
+    bzero(buffer, block_size);
+    offset = SUPERBLOCK_OFFSET + ((inode.i_block[block_number] - 1) *block_size);
+    Pread(info.image_fd,buffer,block_size,offset);
+    size = 0;
+    file = (ext2_dir_entry*) buffer;
+    while (totalsize <= inode.i_size && file->rec_len != 0 && size + file->rec_len <= block_size){
+      if (file->inode != 0){
+	//BYTE OFFSET OF REFERENCED FILE
+	ss << "DIRENT," << inode_number + 1 << "," << totalsize << ",";
+	char file_name[EXT2_NAME_LEN + 1];
+	ss << file->inode << ","
+	   << file->rec_len << ","
+	   << (int) file->name_len << ",";
+	memcpy(file_name, file->name, file->name_len);
+	file_name[file->name_len] = 0;
+	ss << "'" << file_name << "'" << endl;
+	size += file->rec_len;
+	totalsize += file->rec_len;
+	int amount = file->rec_len;
+	char * temp = reinterpret_cast<char*>(file);
+	temp += amount;
+	file = reinterpret_cast<ext2_dir_entry*>(temp);
+	Print(ss.str());
+	ss.str(std::string());
+      }
+      else
+	break;
+      //totalsize += file->rec_len;
+    }
+    block_number++;
+  }
+}
+					 
 void getInode(const EXT2_info &info){
   off_t offset = SUPERBLOCK_OFFSET + ( (info.des_table->bg_inode_table - 1) * (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size));
   __u32 inodes_per_block = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size) / sizeof(ext2_inode);
@@ -215,8 +254,11 @@ void getInode(const EXT2_info &info){
   __u32 size = inodes_blocks * (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
   ext2_inode* inode_table = new ext2_inode[size/sizeof(ext2_inode)];
   ssize_t rc = Pread(info.image_fd, inode_table, size, offset);
-  for (int i = 0; i < size/sizeof(ext2_inode); i++) {
-    process_inode(inode_table[i], i);
+  for (__u32 i = 0; i < size/sizeof(ext2_inode); i++) {
+    if (inode_table[i].i_mode != 0 && inode_table[i].i_links_count != 0)
+      process_inode(inode_table[i], i);
+    if (S_ISDIR(inode_table[i].i_mode))
+      process_dir(info, inode_table[i], i);
     getIndirect(info, inode_table, i);
   }
 }
