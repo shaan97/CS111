@@ -217,8 +217,9 @@ void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32
     __u32 index = 0;
     __u32 *blockNumbers = new __u32[block_size/sizeof(__u32)];
     blockNumbers = (__u32*) buffer;
-    while (blockNumbers[index] != 0){
-      process_dir_recursive(info, inode, inode_number, 2, blockNumbers[index], totalsize);
+    while(index < block_size/sizeof(__u32)){
+      if (info.is_valid_block(blockNumbers[index]))
+	process_dir_recursive(info, inode, inode_number, 2, blockNumbers[index], totalsize);
       index++;
     }
   }
@@ -226,8 +227,9 @@ void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32
     __u32 index = 0;
     __u32 *blockNumbers = new __u32[block_size/sizeof(__u32)];
     blockNumbers = (__u32*) buffer;
-    while (blockNumbers[index] != 0){
-      process_dir_recursive(info, inode, inode_number, 1, blockNumbers[index], totalsize);
+    while (index < block_size/sizeof(__u32)){
+      if (info.is_valid_block(blockNumbers[index]))
+	process_dir_recursive(info, inode, inode_number, 1, blockNumbers[index], totalsize);
       index++;
     }
   }
@@ -235,8 +237,9 @@ void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32
     __u32 index = 0;
     __u32 *blockNumbers = new __u32[block_size/sizeof(__u32)];
     blockNumbers = (__u32*) buffer;
-    while (blockNumbers[index] != 0){
-      process_dir_recursive(info, inode, inode_number,0, blockNumbers[index], totalsize);
+    while (index < block_size/sizeof(__u32)){
+      if (info.is_valid_block(blockNumbers[index]))
+	process_dir_recursive(info, inode, inode_number,0, blockNumbers[index], totalsize);
       index++;
     }
   }
@@ -279,7 +282,11 @@ void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_num
   ext2_dir_entry *file;
   __u32 block_size = EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size;
   char *buffer = new char[block_size];
-  while (totalsize < inode.i_size && block_number < EXT2_NDIR_BLOCKS && inode.i_block[block_number] != 0){
+  while (totalsize < inode.i_size && block_number < EXT2_NDIR_BLOCKS){
+    if (!info.is_valid_block(inode.i_block[block_number])){
+      block_number++;
+      continue;
+    }
     bzero(buffer, block_size);
     offset = SUPERBLOCK_OFFSET + ((inode.i_block[block_number] - 1) *block_size);
     Pread(info.image_fd,buffer,block_size,offset);
@@ -310,17 +317,13 @@ void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_num
     block_number++;
   }
 
-  while (totalsize < inode.i_size && block_number < EXT2_N_BLOCKS && inode.i_block[block_number] != 0){
-    if (block_number == EXT2_IND_BLOCK)
+  while (totalsize < inode.i_size && block_number < EXT2_N_BLOCKS){
+    if (block_number == EXT2_IND_BLOCK && info.is_valid_block(inode.i_block[block_number]))
       process_dir_recursive(info, inode, inode_number, 1, inode.i_block[block_number], totalsize);
-    else if (block_number == EXT2_DIND_BLOCK)
+    else if (block_number == EXT2_DIND_BLOCK && info.is_valid_block(inode.i_block[block_number]))
       process_dir_recursive(info, inode, inode_number, 2, inode.i_block[block_number], totalsize);
-    else if (block_number == EXT2_TIND_BLOCK)
+    else if (block_number == EXT2_TIND_BLOCK && info.is_valid_block(inode.i_block[block_number]))
       process_dir_recursive(info, inode, inode_number, 3, inode.i_block[block_number], totalsize);
-    else
-      {
-	cerr << "SOMETHING BAD" << endl;
-      }
     block_number++;
   }
     
