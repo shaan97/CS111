@@ -1,3 +1,7 @@
+//NAME: Shaan Mathur, Garvit Pugalia
+//EMAIL: shaankaranmathur@gmail.com, garvitpugalia@gmail.com
+//ID: 904606576, 504628127
+
 #include <iostream>
 #include <fstream>
 #include <string>
