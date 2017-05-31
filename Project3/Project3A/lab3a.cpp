@@ -12,6 +12,7 @@
 #include <sstream>
 #include <ctime>
 #include <iomanip>
+#include <cmath>
 
 using namespace std;
 
@@ -143,7 +144,8 @@ int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int 
   // Read into __u32 buffer the current block
   int b_size = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
   int offset = SUPERBLOCK_OFFSET + (block - 1) * b_size;
-  __u32* buffer = new __u32[b_size / sizeof(__u32)];
+  int limit = ceil( ((double)(b_size))/sizeof(__u32));
+  __u32* buffer = new __u32[limit];
   Pread(info.image_fd, buffer, b_size, offset);
 
 
@@ -152,7 +154,8 @@ int process_indirect(const EXT2_info& info, ext2_inode& inode, __u32 index, int 
   int first_offset = -1; // Remember first valid offset
     
   // For every entry so long as it is nonzero, print appropriate information
-  for(int i = 0; i < b_size / sizeof(__u32)/* && buffer[i]*/; i++) {
+  
+  for(int i = 0; i < limit /* && buffer[i]*/; i++) {
     if(!info.is_valid_block(buffer[i]))
       continue;
     if(level == 0){
@@ -207,7 +210,9 @@ void getIndirect(const EXT2_info& info, ext2_inode * inode_table, __u32 index) {
   
 }
 
+__u32 DELETE_THIS;
 void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32 inode_number, __u32 level, __u32 block_number, __u32 &totalsize){
+  DELETE_THIS = inode_number;
   __u32 block_size = EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size;
   __u32 offset = SUPERBLOCK_OFFSET + ((block_number - 1) * block_size);
   char *buffer = new char[block_size];
@@ -248,7 +253,7 @@ void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32
     file = (ext2_dir_entry*) buffer;
     __u32 size = 0;
     while (totalsize < inode.i_size && file->rec_len != 0 && size + file->rec_len <= block_size){
-      if (file->inode != 0){
+      if (file->inode && info.is_valid_inode(file->inode - 1)){
 	ss << "DIRENT," << inode_number + 1 << "," << totalsize << ",";
 	char file_name[EXT2_NAME_LEN + 1];
 	ss << file->inode << ","
@@ -265,9 +270,13 @@ void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32
 	file = reinterpret_cast<ext2_dir_entry*>(temp);
 	Print(ss.str());
 	ss.str(std::string());
+      }else {
+	size = size + file->rec_len;
+	int amount = file->rec_len;
+	char* temp = reinterpret_cast<char*>(file);
+	temp += amount;
+	file = reinterpret_cast<ext2_dir_entry*>(temp);
       }
-      else
-	break;
     }
   }
   else{
@@ -292,8 +301,8 @@ void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_num
     Pread(info.image_fd,buffer,block_size,offset);
     size = 0;
     file = (ext2_dir_entry*) buffer;
-    while (totalsize < inode.i_size && file->rec_len != 0 && size + file->rec_len <= block_size){
-      if (file->inode != 0){
+    while (totalsize < inode.i_size && file->rec_len != 0 && (size + file->rec_len) <= block_size){
+      if (file->inode && info.is_valid_inode(file->inode - 1)){
 	ss << "DIRENT," << inode_number + 1 << "," << totalsize << ",";
 	char file_name[EXT2_NAME_LEN + 1];
 	ss << file->inode << ","
@@ -310,9 +319,13 @@ void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_num
 	file = reinterpret_cast<ext2_dir_entry*>(temp);
 	Print(ss.str());
 	ss.str(std::string());
+      }else {
+	size = size + file->rec_len;
+	int amount = file->rec_len;
+	char* temp = reinterpret_cast<char*>(file);
+	temp += amount;
+	file = reinterpret_cast<ext2_dir_entry*>(temp);
       }
-      else
-	break;
     }
     block_number++;
   }
@@ -331,17 +344,23 @@ void process_dir(const EXT2_info &info, const ext2_inode &inode, __u32 inode_num
 					 
 void getInode(const EXT2_info &info){
   off_t offset = SUPERBLOCK_OFFSET + ( (info.des_table->bg_inode_table - 1) * (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size));
-  __u32 inodes_per_block = (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size) / sizeof(ext2_inode);
+  __u32 inodes_per_block = ceil((double)(EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size) / sizeof(ext2_inode));
   __u32 inodes_blocks = info.super_block->s_inodes_per_group / inodes_per_block;
   __u32 size = inodes_blocks * (EXT2_MIN_BLOCK_SIZE << info.super_block->s_log_block_size);
-  ext2_inode* inode_table = new ext2_inode[size/sizeof(ext2_inode)];
+  __u32 limit = ceil((double)(size)/sizeof(ext2_inode));
+  ext2_inode* inode_table = new ext2_inode[limit];
   ssize_t rc = Pread(info.image_fd, inode_table, size, offset);
-  for (__u32 i = 0; i < size/sizeof(ext2_inode); i++) {
-    if (inode_table[i].i_mode != 0 && inode_table[i].i_links_count != 0)
+ 
+  for (__u32 i = 0; i < limit; i++) {
+    if(!info.is_valid_inode(i))
+      continue;
+    if (inode_table[i].i_mode != 0 && inode_table[i].i_links_count != 0) {
       process_inode(inode_table[i], i);
-    if (S_ISDIR(inode_table[i].i_mode))
-      process_dir(info, inode_table[i], i);
-    getIndirect(info, inode_table, i);
+      if (S_ISDIR(inode_table[i].i_mode))
+	process_dir(info, inode_table[i], i);
+      getIndirect(info, inode_table, i);
+    }
+
   }
 }
 
@@ -391,7 +410,7 @@ int main(int argc, char *argv[])
 
   getSuperblock(info);
   getGroupDescriptor(info);
-  info.init_b_map();
+  info.init_b_maps();
   getFreeBlock(info);
   getFreeInode(info);
   getInode(info);
