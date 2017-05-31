@@ -45,5 +45,5 @@ void EXT2_info::init_b_map() {
 
 // Returns nonzero if block is in use
 bool EXT2_info::is_valid_block(__u32 block) const {
-  return block && d_bmap[ block / (8 * sizeof(char)) ] & (0x1 << (block % (8 * sizeof(char))));
+  return block && d_bmap[ (block - 1) / (8 * sizeof(char)) ] & (0x1 << ((block - 1) % (8 * sizeof(char))));
 }
