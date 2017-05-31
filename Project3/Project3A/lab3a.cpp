@@ -280,7 +280,7 @@ void process_dir_recursive(const EXT2_info &info, const ext2_inode &inode, __u32
     }
   }
   else{
-    cerr << "ERROR" << endl;
+    //cerr << "ERROR" << endl;
   }
 }
 
@@ -352,9 +352,9 @@ void getInode(const EXT2_info &info){
   ssize_t rc = Pread(info.image_fd, inode_table, size, offset);
  
   for (__u32 i = 0; i < limit; i++) {
-    if(!info.is_valid_inode(i))
-      continue;
-    if (inode_table[i].i_mode != 0 && inode_table[i].i_links_count != 0) {
+    /*if(!info.is_valid_inode(i))
+      continue;*/
+    if (info.is_valid_inode(i) && inode_table[i].i_mode != 0 && inode_table[i].i_links_count != 0) {
       process_inode(inode_table[i], i);
       if (S_ISDIR(inode_table[i].i_mode))
 	process_dir(info, inode_table[i], i);
