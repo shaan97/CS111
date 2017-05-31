@@ -13,7 +13,6 @@ EXT2_info::EXT2_info() {
   super_block = nullptr;
   des_table = nullptr;
   d_bmap = nullptr;
-  i_bmap = nullptr;
 }
 
 EXT2_info::~EXT2_info(){
@@ -35,26 +34,14 @@ ssize_t Pread(int fd, void *buf, size_t count, off_t offset);
 }
 */
 
-void EXT2_info::init_b_maps() {
-  int b_size = EXT2_MIN_BLOCK_SIZE << super_block->s_log_block_size;
+void EXT2_info::init_b_map() {
   if(d_bmap == nullptr) {
-    
+    int b_size = EXT2_MIN_BLOCK_SIZE << super_block->s_log_block_size;
     d_bmap = new char[b_size];
     off_t offset = SUPERBLOCK_OFFSET + (des_table->bg_block_bitmap - 1) * b_size;
     ssize_t rc = Pread(image_fd, d_bmap, b_size, offset);
   }
-  if(i_bmap == nullptr) {
-    i_bmap = new char[b_size];
-    off_t offset = SUPERBLOCK_OFFSET + (des_table->bg_inode_bitmap - 1) * b_size;
-    ssize_t rc = Pread(image_fd, i_bmap, b_size, offset);
-  }
 }
-
-// Returns nonzero if block is in use
 bool EXT2_info::is_valid_block(__u32 block) const {
-  return block && d_bmap[ (block - 1) / (8 * sizeof(char)) ] & (0x1 << ((block - 1) % (8 * sizeof(char))));
-}
-
-bool EXT2_info::is_valid_inode(__u32 inode) const {
-  return inode && i_bmap[ ( (inode) / (8 * sizeof(char)) ) ] & (0x1 << ((inode) % (8 * sizeof(char))));
+  return d_bmap[ block / (8 * sizeof(char)) ] & (0x1 << (block % (8 * sizeof(char))));
 }

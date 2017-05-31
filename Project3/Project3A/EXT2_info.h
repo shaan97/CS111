@@ -8,6 +8,7 @@
 class EXT2_info{
  private:
   char * d_bmap;
+  char * i_bmap;
  public:
   ext2_super_block* super_block;
   ext2_group_desc* des_table;
@@ -15,8 +16,9 @@ class EXT2_info{
 
   EXT2_info();
   ~EXT2_info();
-  void init_b_map();
+  void init_b_maps();
   bool is_valid_block(__u32 block) const;
+  bool is_valid_inode(__u32 inode) const;
 };
 
 
