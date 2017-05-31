@@ -8,7 +8,7 @@ NOTE: The file compiles and works for my lab partner's lnxsrv09 (which is runnin
 
 RESOURCES:
 http://www.nongnu.org/ext2-doc/ext2.html Provided documentation about the Second Extended File System
-http://cs.smith.edu/~nhowe/262/oldlabs/ext2.html#itable
+http://cs.smith.edu/~nhowe/262/oldlabs/ext2.html#itable Tutorial/Walkthrough explaining many of the caveats of dealing with an image file for an EXT2 file system.
 
 INCLUDED FILES:
 
