@@ -17,6 +17,7 @@
 #include <ctime>
 #include <iomanip>
 #include <cmath>
+#include <stdlib.h>
 
 using namespace std;
 

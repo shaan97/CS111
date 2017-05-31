@@ -14,18 +14,18 @@
 #define SUPERBLOCK_OFFSET 0x400
 
 EXT2_info::EXT2_info() {
-  super_block = nullptr;
-  des_table = nullptr;
-  d_bmap = nullptr;
-  i_bmap = nullptr;
+  super_block = NULL;
+  des_table = NULL;
+  d_bmap = NULL;
+  i_bmap = NULL;
 }
 
 EXT2_info::~EXT2_info(){
-  if(super_block != nullptr)
+  if(super_block != NULL)
     delete super_block;
-  if(des_table != nullptr)
+  if(des_table != NULL)
     delete des_table;
-  if(d_bmap != nullptr)
+  if(d_bmap != NULL)
     delete d_bmap;
 }
 
@@ -41,13 +41,13 @@ ssize_t Pread(int fd, void *buf, size_t count, off_t offset);
 
 void EXT2_info::init_b_maps() {
   int b_size = EXT2_MIN_BLOCK_SIZE << super_block->s_log_block_size;
-  if(d_bmap == nullptr) {
+  if(d_bmap == NULL) {
     
     d_bmap = new char[b_size];
     off_t offset = SUPERBLOCK_OFFSET + (des_table->bg_block_bitmap - 1) * b_size;
     ssize_t rc = Pread(image_fd, d_bmap, b_size, offset);
   }
-  if(i_bmap == nullptr) {
+  if(i_bmap == NULL) {
     i_bmap = new char[b_size];
     off_t offset = SUPERBLOCK_OFFSET + (des_table->bg_inode_bitmap - 1) * b_size;
     ssize_t rc = Pread(image_fd, i_bmap, b_size, offset);
