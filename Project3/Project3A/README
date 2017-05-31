@@ -6,10 +6,15 @@ README
 
 RESOURCES:
 http://www.nongnu.org/ext2-doc/ext2.html Provided documentation about the Second Extended File System
+http://cs.smith.edu/~nhowe/262/oldlabs/ext2.html#itable
 
 INCLUDED FILES:
 
-
-
-
-
+1) Makefile: Use make to create an executable called 'lab3a'. File also includes make targets for clean and dist
+2) README: Text file containing information about the project
+3) lab3a.h: Header file declarations for lab3a functions used in processing the image file (e.g. process_dir, getIndirect...)
+4) EXT2_info.h: Header file with declaration of our custom class 'EXT2_info' which includes pointers to the superblock and group descriptor table. This class is passed as an argument to most of the processing functions
+5) ext_fs.h: Provided header file with declaration of common constants and declaration of the file system structs (superblock, inode ...)
+6) Ext_fs.h: Wrapper header file for ext_fs.h to add include guards and protection
+7) EXT2_info.cpp: Class implementation of our custom class, with two available methods (is_valid_block & is_valid_inode) to check for validity of inodes/blocks
+8) lab3a.cpp: Implementation of our main C++ code that takes an .img file as an argument and prints out a comma-separated-value output to stdout with details about the superblock, group descriptor tables, inode summaries, inode and data bitmaps, directory entries and indirect blocks
