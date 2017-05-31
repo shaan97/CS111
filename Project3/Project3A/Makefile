@@ -1,8 +1,8 @@
 default: build
 build: lab3a.cpp
-	g++ EXT2_info.cpp lab3a.cpp -o lab3a
+	g++ EXT2_info.cpp lab3a.cpp -o lab3a -lm
 debug:
-	g++ -g EXT2_info.cpp lab3a.cpp -o lab3a
+	g++ -g EXT2_info.cpp lab3a.cpp -o lab3a -lm
 clean:
 	rm -rf lab3a
 dist:
