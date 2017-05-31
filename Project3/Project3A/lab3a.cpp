@@ -56,6 +56,7 @@ int Open(const char * pathname, int flags){
   int rc;
   if ( (rc = open(pathname, flags)) < 0 ){
     cerr << "Error Number:" << errno << "\tError Message: " << strerror(errno) << endl;
+    exit(1);
   }
   return rc;
 }
