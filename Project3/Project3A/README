@@ -4,7 +4,7 @@ UID: 904606576, 504628127
 
 README
 
-NOTE: The file compiles and works for my lab partner's lnxsrv09 (which is running g++ version 4.8.5) but it doesn't work for my lnxsrv09 (which is running g++ version 6.3.0). We have posted on Piazza about this issue with no replies, but had to submit in order to not waste a slip day.
+NOTE: The file compiles and works for my lab partner's lnxsrv09 (which is running g++ version 4.8.5) but it doesn't work for my lnxsrv09 (which is running g++ version 6.3.0). We have posted on Piazza about this issue with no replies (@645) , but had to submit in order to not waste a slip day.
 
 RESOURCES:
 http://www.nongnu.org/ext2-doc/ext2.html Provided documentation about the Second Extended File System
