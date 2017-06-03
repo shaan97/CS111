@@ -7,6 +7,8 @@
 struct Inode {
     bool isAllocated = false;
     bool onFreeList = false;
+  int linkcount = 0;
+  int numLinks = 0;
 };
 
 struct Indirect {

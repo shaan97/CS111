@@ -100,19 +100,37 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 	  Inode i;
 	  long inode_num;
 	  ss >> inode_num;
-	  i.onFreeList = true;
-	  inodes.emplace(inode_num,i);
+	  auto itr = inodes.find(inode_num);
+	  if (itr == inodes.end())
+	    {
+	      i.onFreeList = true;
+	      inodes.emplace(inode_num, i);
+	    }
+	  else
+	    itr->second.onFreeList = true;
         } else if(next == "INODE") {
 	  Inode i;
 	  long inode_num;
+	  int linkcount;
 	  ss >> inode_num;
-	  i.isAllocated = true;
-	  inodes.emplace(inode_num, i);
-	    
+	  ignore_num(ss,4);
+	  ss >> linkcount;
+	  auto itr = inodes.find(inode_num);
+	  if (itr == inodes.end())
+	    {
+	      i.isAllocated = true;
+	      i.linkcount = linkcount;
+	      inodes.emplace(inode_num, i);
+	    }
+	  else
+	    {
+	      itr->second.isAllocated = true;
+	      itr->second.linkcount = linkcount;
+	    }
 	  
             Block b;
 
-            ignore_num(ss, 13); // Ignore the next 13 tokens to jump to block numbers
+            ignore_num(ss, 8); // Ignore the next 13 tokens to jump to block numbers
 
             long block_num, count = 0;
             while(ss) {
@@ -138,6 +156,20 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
             }
 
         } else if(next == "DIRENT") {
+	  Inode i;
+	  long inode_num;
+	  ignore_num(ss,2);
+	  ss >> inode_num;
+	  auto itr = inodes.find(inode_num);
+	  if (itr == inodes.end())
+	    {
+	      i.numLinks = 1;
+	      inodes.emplace(inode_num,i);
+	    }
+	  else
+	    {
+	      itr->second.numLinks++;
+	    }
 
         } else if(next == "INDIRECT") {
 
@@ -167,6 +199,8 @@ void audit_block(const unordered_map<long, Block>& blocks, const SuperBlock& sup
 	cout << "UNALLOCATED INODE " << itr->first << " NOT ON FREELIST" << endl;
       if (itr->second.isAllocated == true && itr->second.onFreeList == true)
 	cout << "ALLOCATED INODE " << itr->first << " ON FREELIST" << endl;
+      if (itr->second.isAllocated == true && itr->second.linkcount != itr->second.numLinks)
+	cout << "INODE " << itr->first << " HAS " << itr->second.numLinks << " LINKS BUT LINKCOUNT IS " << itr->second.linkcount << endl;
     }
 
     for(auto itr = blocks.begin(); itr != blocks.end(); ++itr) {
