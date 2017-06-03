@@ -2,6 +2,16 @@
 #define DATA_H
 
 #include <vector>
+#include <unordered_map>
+
+struct Inode {
+    bool isAllocated = false;
+    bool onFreeList = false;
+};
+
+struct Indirect {
+    std::unordered_map<long, long> offsets; // Maps inode number to logical block offset
+};
 
 struct SuperBlock {
     long numBlocks;
