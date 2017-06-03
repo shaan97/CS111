@@ -1,5 +1,6 @@
-lab3b,
-GPATH,
-GRTAGS,
-GTAGS,
+lab3b
+GPATH
+GRTAGS
+GTAGS
 *.json
+*.csv
