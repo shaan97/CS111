@@ -97,11 +97,21 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
             }
 
         } else if(next == "IFREE") {
-
+	  Inode i;
+	  long inode_num;
+	  ss >> inode_num;
+	  i.onFreeList = true;
+	  inodes.emplace(inode_num,i);
         } else if(next == "INODE") {
+	  Inode i;
+	  long inode_num;
+	  ss >> inode_num;
+	  i.isAllocated = true;
+	  inodes.emplace(inode_num, i);
+	    
+	  
             Block b;
-            long inode_num;
-            ss >> inode_num;
+
             ignore_num(ss, 13); // Ignore the next 13 tokens to jump to block numbers
 
             long block_num, count = 0;
@@ -145,11 +155,18 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 
 void resolve_offset(Block& b, const Indirect& indir);
 
-void audit_block(const unordered_map<int, Block>& blocks, const SuperBlock& super, Indirect& indir) {
+void audit_block(const unordered_map<long, Block>& blocks, const SuperBlock& super, Indirect& indir, const unordered_map<long, Inode>& inodes) {
     // Keep track of which valid blocks have not been referenced yet
     unordered_set<int> unref_blocks;
     for(long i = super.nonreserved_block; i < super.numBlocks; i++) {
         unref_blocks.insert(i);
+    }
+
+    for (auto itr = inodes.begin(); itr != inodes.end(); ++itr){
+      if (itr->second.isAllocated == false && itr->second.onFreeList == false)
+	cout << "UNALLOCATED INODE " << itr->first << " NOT ON FREELIST" << endl;
+      if (itr->second.isAllocated == true && itr->second.onFreeList == true)
+	cout << "ALLOCATED INODE " << itr->first << " ON FREELIST" << endl;
     }
 
     for(auto itr = blocks.begin(); itr != blocks.end(); ++itr) {
@@ -181,7 +198,7 @@ void audit_block(const unordered_map<int, Block>& blocks, const SuperBlock& supe
         if(itr->second.inodes.size() > 1) {
             // Block is held by multiple inodes
             for(long i = 0; i < itr->second.inodes.size(); i++) {
-                cout << "DUPLICATE BLOCK "
+	      cout << "DUPLICATE BLOCK "
             }
         }
     }
@@ -191,13 +208,14 @@ void audit_block(const unordered_map<int, Block>& blocks, const SuperBlock& supe
 
 int main(int argc, char ** argv) {
     ifstream fin;
-    unordered_map<int, Block> blocks;
+    unordered_map<long, Block> blocks;
+    unordered_map<long, Inode> inodes;
     SuperBlock super;
-
+    Indirect indir;
     // Initialize File and Input Stream
     init_file(argc, argv, fin);
 
-    collect_data(fin, blocks, super);
+    collect_data(fin, blocks, super, indir, inodes);
 
     return 0;
 }
