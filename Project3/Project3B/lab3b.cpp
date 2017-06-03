@@ -54,10 +54,13 @@ void ignore_num(istream& in, int numWords) {
                             See "data.h" for details on the struct
     @param super            Will be modified to contain Superblock data.
                             See "data.h" for details on the struct
-
+    @param indir            Will be modified to contain mapping from inode number to logical block offset.
+                            See "data.h" for details on the struct
+    @param inodes           Will be modified to contain mapping from inode number to information on Inode.
+                            See "data.h" for details on the struct
  */
 
-void collect_data(ifstream& fin, unordered_map<int, Block>& blocks, SuperBlock& super) {
+void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock& super, Indirect& indir, unordered_map<long, Inode>& inodes) {
     string next, line;
     stringstream ss;
     while(fin){
