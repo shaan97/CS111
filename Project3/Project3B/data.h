@@ -10,13 +10,24 @@ struct Inode {
 };
 
 struct Indirect {
-    std::unordered_map<long, long> offsets; // Maps inode number to logical block offset
+    long offset;
+    long level;
+    long inode;
+};
+
+struct Group {
+    long num;
+    long freeBlocks;
+    long firstBlock;
 };
 
 struct SuperBlock {
     long numBlocks;
     long numInodes;
-    long nonreserved_block;
+    long nonreserved_inode;
+    long inodeSize = -1;
+    long blockSize;
+    long inodesPerGroup;
 };
 
 struct Block {
