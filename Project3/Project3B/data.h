@@ -3,24 +3,39 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
+#include <string>
+
+
 
 struct Inode {
+    long num;
+    int linkcount = 0;
+    int numLinks = 0;
 	bool isAllocated = false;
 	bool onFreeList = false;
-	int linkcount = 0;
-	int numLinks = 0;
+    std::string name;
+	long currentDirNum = -1;
+	char type = '?';
+};
+
+struct Directory {
+    long num;
+    std::unordered_multimap<long, Inode> entries;
 };
 
 struct Indirect {
 	long offset;
 	long level;
 	long inode;
+    
 };
 
 struct Group {
 	long num;
 	long freeBlocks;
 	long firstBlock;
+    long numInodes;
 };
 
 struct SuperBlock {

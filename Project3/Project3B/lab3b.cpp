@@ -50,10 +50,10 @@ void ignore_num(istream& in, int numWords) {
 /*  Collects all requisite data from input file into data structures
 	necessary for analysis.
 
-	@param fin			  Input file stream. Expected to be in format 
+	@param fin			    Input file stream. Expected to be in format 
 							specified in Project3A
 
-	@param blocks		   Will be modified to map inode number to Block information.
+	@param blocks		    Will be modified to map inode number to Block information.
 							See "data.h" for details on the struct
 
 	@param super			Will be modified to contain Superblock data.
@@ -63,17 +63,25 @@ void ignore_num(istream& in, int numWords) {
 							See "data.h" for details on the struct. Will NEVER have an invalid offset. Insert
 							only if offset is known.
 
-	@param inodes		   Will be modified to contain mapping from inode number to information on Inode.
+	@param inodes		    Will be modified to contain mapping from inode number to information on Inode.
 							See "data.h" for details on the struct
+
+    @param gp               Will be modified to contain information in Group block.
+                            See "data.h" for details on the struct
+
+    @param dirs             Will contain mapping from inode number to info on directory.
+                            See "data.h" for details on the struct
  */
 
 void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock& super, 
-				unordered_multimap<long, Indirect>& indir, unordered_map<long, Inode>& inodes, Group& gp) {
-	string next, line;
+				unordered_multimap<long, Indirect>& indir, unordered_multimap<long, Inode>& inodes, 
+                Group& gp, unordered_map<long, Directory>& dirs) {
+	string next, line, line2;
 	stringstream ss;
-	while(getline(fin, line)){
-		
-		replace(line.begin(), line.end(), ',', ' '); // Setup whitespace for the stringstream
+	while(getline(fin, line)) {
+        line2 = line;
+        // TODO : Handle cases where ',' is in file name
+        replace(line.begin(), line.end(), ',', ' '); // Setup whitespace for the stringstream
 		ss << line; // Send first line into stringstream so we can parse more easily
 		
 		// Determine nature of line
@@ -91,22 +99,21 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 		} else if(next == "GROUP") {
 			long group_num, freeBlocks, firstBlock;
 			ss >> group_num;
-			if(!group_num) {  // May need to take this out to handle multiple groups
-				
-				ignore_num(ss, 2);
-				ss >> freeBlocks;
-				ignore_num(ss, 3);
-				ss >> firstBlock;
-				/* TODO : Handle multiple groups */
-				gp.freeBlocks = freeBlocks;
-				gp.num = group_num;
-				gp.firstBlock = firstBlock;
-				/*
-				Group gp;
-				gp.freeBlocks = freeBlocks;
-				groups.emplace(group_num, gp);
-				*/
-			}
+
+			ignore_num(ss, 1);
+            ss >> gp.numInodes;
+            ss >> freeBlocks;
+            ignore_num(ss, 3);
+            ss >> firstBlock;
+			/* TODO : Handle multiple groups */
+			gp.freeBlocks = freeBlocks;
+			gp.num = group_num;
+			gp.firstBlock = firstBlock;
+			/*
+			Group gp;
+			gp.freeBlocks = freeBlocks;
+			groups.emplace(group_num, gp);
+			*/
 		} else if(next == "BFREE") {
 			Block b;
 			b.onFreelist = true;
@@ -127,14 +134,21 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 			Inode i;
 			long inode_num;
 			ss >> inode_num;
-			auto itr = inodes.find(inode_num);
-			if (itr == inodes.end())
+			i.num = inode_num;
+			auto range = inodes.equal_range(inode_num);
+			if (range.first == range.second)
 			{
 				i.onFreeList = true;
 				inodes.emplace(inode_num, i);
 			}
-			else
-				itr->second.onFreeList = true;
+			else {
+				auto itr = range.first;
+				while (itr != range.second) {
+					itr->second.onFreeList = true;
+					itr->second.num = inode_num;
+					++itr;
+				}
+			}
 		}
 		else if (next == "INODE")
 		{
@@ -142,10 +156,12 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 			long inode_num;
 			int linkcount;
 			ss >> inode_num;
-			ignore_num(ss, 4);
-			ss >> linkcount;
-			auto itr = inodes.find(inode_num);
-			if (itr == inodes.end())
+			i.num = inode_num;
+            ss >> i.type;
+            ignore_num(ss, 3);
+            ss >> linkcount;
+			auto range = inodes.equal_range(inode_num);
+			if (range.first == range.second)
 			{
 				i.isAllocated = true;
 				i.linkcount = linkcount;
@@ -153,11 +169,18 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 			}
 			else
 			{
-				itr->second.isAllocated = true;
-				itr->second.linkcount = linkcount;
+				auto itr = range.first;
+				while(itr != range.second) {
+					itr->second.isAllocated = true;
+					itr->second.linkcount = linkcount;
+					itr->second.num = inode_num;
+                	itr->second.type = i.type;
+					++itr;
+				}
+				
 			}
 
-			Block b;
+            Block b;
 
 			ignore_num(ss, 8); // Ignore the next 8 tokens to jump to block numbers
 
@@ -190,19 +213,91 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 		} else if(next == "DIRENT") {
 			Inode i;
 			long inode_num;
-			ignore_num(ss, 2);
+
+			Directory dir;
+			ss >> dir.num;
+			ignore_num(ss, 1);
 			ss >> inode_num;
-			auto itr = inodes.find(inode_num);
-			if (itr == inodes.end())
+			i.num = inode_num;
+
+			auto range = inodes.equal_range(inode_num);
+			ignore_num(ss, 2);
+            
+            i.name = line2.substr(line2.find("'"));
+            while(i.name[i.name.size() - 1] != '\'')
+                i.name.pop_back();
+
+			if (i.name == "'.'")
+				i.currentDirNum = i.num;
+
+			std::unordered_multimap<long, Inode>::iterator itr;
+			if (range.first == range.second)
 			{
 				i.numLinks = 1;
-				inodes.emplace(inode_num, i);
+				itr = inodes.emplace(inode_num, i);
 			}
 			else
 			{
-				itr->second.numLinks++;
+				itr = range.first;
+				i.numLinks = itr->second.numLinks + 1;
+				i.onFreeList = itr->second.onFreeList;
+				i.type = itr->second.type;
+				i.linkcount = itr->second.linkcount;
+				i.isAllocated = itr->second.isAllocated;
+				
+				while (itr != range.second)
+				{
+					itr->second.numLinks++;
+					itr->second.num = i.num;
+					if(i.name == "'.'")
+						itr->second.currentDirNum = i.num;
+					else if(itr->second.name == "'.'")
+						i.currentDirNum = itr->second.currentDirNum;
+					++itr;
+				}
+
+				itr = inodes.emplace(inode_num, i);
 			}
-		} else if(next == "INDIRECT") {
+
+			auto d = dirs.find(dir.num);
+			
+
+			if (d != dirs.end())
+			{
+				// There exists a directory with this directory number
+				auto begin = d->second.entries.begin();
+				if (i.name == "'.'")
+				{
+					for_each(begin, d->second.entries.end(), [&i](pair<const long, Inode> &p) {
+						p.second.currentDirNum = i.num;
+					});
+				} else if(begin->second.currentDirNum > 0) {
+					i.currentDirNum = begin->second.currentDirNum;
+				}
+				d->second.entries.emplace(i.num, i);
+				/*auto entry_range = d->second.entries.equal_range(i.num); //emplace(itr->second.num, itr->second);
+				if(entry_range.first == entry_range.second) {
+					d->second.entries.emplace(i.num, i);
+				}
+				else {
+					if(i.name == "'.'") {
+						for_each(entry_range.first, entry_range.second, [&i](pair<const long, Inode> &p) {
+							p.second.currentDirNum = i.num;
+						});
+					} else if(entry_range.first->second.currentDirNum > 0) {
+						// currentDirNum has been assigned
+						i.currentDirNum = entry_range.first->second.currentDirNum;
+					}
+					d->second.entries.emplace(i.num, i);
+				}*/
+			} else {
+				// Directory does not yet exist
+                dir.entries.emplace(i.num, i);
+                dirs.emplace(dir.num, dir);
+            }            
+        }
+		else if (next == "INDIRECT")
+		{
 			long inode, level, offset, block;
 			ss >> inode >> level >> offset >> block;
 			ss >> block;
@@ -311,16 +406,60 @@ long resolve_offset(const unordered_multimap<long, Indirect> &indir, unordered_m
 	}
 }
 
-void audit_inodes(unordered_map<long, Inode> &inodes)
-{
-	for (auto itr = inodes.begin(); itr != inodes.end(); ++itr)
-	{
-		if (itr->second.isAllocated == false && itr->second.onFreeList == false)
-			cout << "UNALLOCATED INODE " << itr->first << " NOT ON FREELIST" << endl;
-		if (itr->second.isAllocated == true && itr->second.onFreeList == true)
+void audit_inodes(unordered_multimap<long, Inode> &inodes, unordered_map<long, Directory>& dirs, const SuperBlock& super, const Group& gp) {
+    for (long i = super.nonreserved_inode; i <= gp.numInodes; i++)
+    {
+        auto range = inodes.equal_range(i);
+        if (range.first == range.second)
+            cout << "UNALLOCATED INODE " << i << " NOT ON FREELIST" << endl;
+    }
+
+    for (auto itr = inodes.begin(); itr != inodes.end();) {
+        if (itr->second.isAllocated == true && itr->second.onFreeList == true)
 			cout << "ALLOCATED INODE " << itr->first << " ON FREELIST" << endl;
 		if (itr->second.isAllocated == true && itr->second.linkcount != itr->second.numLinks)
 			cout << "INODE " << itr->first << " HAS " << itr->second.numLinks << " LINKS BUT LINKCOUNT IS " << itr->second.linkcount << endl;
+
+		std::advance(itr, inodes.count(itr->first)); // Skip over duplicate keys
+	}
+
+	const long ROOT = 2;
+	unordered_map<long, long> parentDir;
+	parentDir.emplace(ROOT, ROOT);
+	for (auto dir = dirs.begin(); dir != dirs.end(); ++dir)
+	{
+		auto entry = dir->second.entries.begin();
+		if (entry->second.currentDirNum != dir->second.num && entry->second.currentDirNum != -1)
+			cout << "DIRECTORY INODE " << dir->second.num << " NAME '.' LINK TO INODE " << entry->second.currentDirNum << " SHOULD BE " << dir->second.num << endl;
+
+		for (; entry != dir->second.entries.end(); ++entry)
+		{
+			auto range = inodes.equal_range(entry->second.num);
+			if (range.first == range.second)
+			{
+				cout << "DIRECTORY INODE " << dir->second.num << " NAME " << entry->second.name << " INVALID INODE " << entry->second.num << endl;
+			}
+			else if (!range.first->second.isAllocated)
+			{
+				cout << "DIRECTORY INODE " << dir->second.num << " NAME " << entry->second.name << " UNALLOCATED INODE " << entry->second.num << endl;
+			}
+
+			if(entry->second.type == 'd') {
+				parentDir.emplace(entry->second.num, dir->second.num);
+			}
+		}
+	}
+
+	for (auto dir = dirs.begin(); dir != dirs.end(); ++dir) {
+		auto entry = find_if(dir->second.entries.begin(), dir->second.entries.end(), [](pair<const long, Inode> &p) {
+			return p.second.name == "'..'";
+		});
+		auto parent = parentDir.find(dir->second.num);
+
+		if (entry != dir->second.entries.end() && parent != parentDir.end() && parent->second != entry->second.num)
+		{
+			cout << "DIRECTORY INODE " << parent->second << " NAME '..' LINK TO INODE " << entry->second.num << " SHOULD BE " << parent->second << endl;
+		}
 	}
 }
 
@@ -418,15 +557,16 @@ int main(int argc, char ** argv) {
 	ifstream fin;
 	unordered_map<long, Block> blocks;
 	unordered_multimap<long, Indirect> indir;
-	unordered_map<long, Inode> inodes;
+	unordered_multimap<long, Inode> inodes;
 	SuperBlock super;
 	Group gp;
+	unordered_map<long, Directory> dirs;
 	// Initialize File and Input Stream
 	init_file(argc, argv, fin);
 
-	collect_data(fin, blocks, super, indir, inodes, gp);
+	collect_data(fin, blocks, super, indir, inodes, gp, dirs);
 	audit_block(blocks, super, gp, indir);
-	audit_inodes(inodes);
+	audit_inodes(inodes, dirs, super, gp);
 
 	return 0;
 }

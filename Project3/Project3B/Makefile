@@ -5,3 +5,5 @@ debug:
 	g++ -g lab3b.cpp -o lab3b
 clean:
 	-rm -rf lab3b
+dist:
+	tar -czvf lab3b.cpp data.h Makefile README

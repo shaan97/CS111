@@ -1,0 +1,27 @@
+NAME: SHAAN MATHUR, GARVIT PUGALIA
+EMAIL: SHAANKARANMATHUR@GMAIL.COM, GARVITPUGALIA@GMAIL.COM
+UID: 904606576
+
+INCLUDED FILES
+1. lab3b.cpp
+	A C++ source module to run our program. This source code processes an input .csv file and
+	searches for inconsistencies. Note that compilation should support C++11 (use of lambda
+	expressions, the emplace(...) function, etc.).
+
+2. data.h
+	A C++ header file naming different structures used for data collection in the main program.
+	The structs declared here include: Inode, Directory, Indirect, Group, SuperBlock, Block.
+
+3. Makefile
+	A Makefile that can be used in tandem with the make command to build (default action), build
+	a debuggable version of the executable (debug target), clean the directory of created FILES
+	(clean target), and create a compressed tar ball containing all files for the project.
+
+4. README
+	This file, which details included files and information on sources.
+
+RESOURCES
+
+Most generally, we used as reference cplusplus.com, which includes a lot of information
+on how to use the STL and the rest of the C++ Standard Library.
+
