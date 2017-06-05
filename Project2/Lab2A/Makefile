@@ -122,6 +122,7 @@ lab2_add:
 lab2_list:
 	gcc -pthread lab2_list -o lab2_list
 graphs:
+	export PATH=/usr/local/cs/bin:$PATH
 	gnuplot lab2_add.gp 2> /dev/null
 	gnuplot lab2_list.gp 2> /dev/null
 clean:
