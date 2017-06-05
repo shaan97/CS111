@@ -406,19 +406,26 @@ long resolve_offset(const unordered_multimap<long, Indirect> &indir, unordered_m
 	}
 }
 
-void audit_inodes(unordered_multimap<long, Inode> &inodes, unordered_map<long, Directory>& dirs, const SuperBlock& super, const Group& gp) {
-    for (long i = super.nonreserved_inode; i <= gp.numInodes; i++)
-    {
+bool audit_inodes(unordered_multimap<long, Inode> &inodes, unordered_map<long, Directory>& dirs, const SuperBlock& super, const Group& gp) {
+	bool result = true;
+	for (long i = super.nonreserved_inode; i <= gp.numInodes; i++)
+	{
         auto range = inodes.equal_range(i);
-        if (range.first == range.second)
+        if (range.first == range.second) {
             cout << "UNALLOCATED INODE " << i << " NOT ON FREELIST" << endl;
-    }
+			result = false;
+		}
+	}
 
     for (auto itr = inodes.begin(); itr != inodes.end();) {
-        if (itr->second.isAllocated == true && itr->second.onFreeList == true)
+        if (itr->second.isAllocated == true && itr->second.onFreeList == true) {
 			cout << "ALLOCATED INODE " << itr->first << " ON FREELIST" << endl;
-		if (itr->second.isAllocated == true && itr->second.linkcount != itr->second.numLinks)
+			result = false;
+		}
+		if (itr->second.isAllocated == true && itr->second.linkcount != itr->second.numLinks) {
 			cout << "INODE " << itr->first << " HAS " << itr->second.numLinks << " LINKS BUT LINKCOUNT IS " << itr->second.linkcount << endl;
+			result = false;
+		}
 
 		std::advance(itr, inodes.count(itr->first)); // Skip over duplicate keys
 	}
@@ -429,19 +436,23 @@ void audit_inodes(unordered_multimap<long, Inode> &inodes, unordered_map<long, D
 	for (auto dir = dirs.begin(); dir != dirs.end(); ++dir)
 	{
 		auto entry = dir->second.entries.begin();
-		if (entry->second.currentDirNum != dir->second.num && entry->second.currentDirNum != -1)
+		if (entry->second.currentDirNum != dir->second.num && entry->second.currentDirNum != -1) {
 			cout << "DIRECTORY INODE " << dir->second.num << " NAME '.' LINK TO INODE " << entry->second.currentDirNum << " SHOULD BE " << dir->second.num << endl;
+			result = false;
+		}
 
 		for (; entry != dir->second.entries.end(); ++entry)
 		{
 			auto range = inodes.equal_range(entry->second.num);
-			if (range.first == range.second)
+			if (range.first == range.second || range.first->first < ROOT || range.first->first > gp.numInodes)
 			{
 				cout << "DIRECTORY INODE " << dir->second.num << " NAME " << entry->second.name << " INVALID INODE " << entry->second.num << endl;
+				result = false;
 			}
 			else if (!range.first->second.isAllocated)
 			{
 				cout << "DIRECTORY INODE " << dir->second.num << " NAME " << entry->second.name << " UNALLOCATED INODE " << entry->second.num << endl;
+				result = false;
 			}
 
 			if(entry->second.type == 'd' && entry->second.name != "'.'" && entry->second.name != "'..'") {
@@ -459,12 +470,15 @@ void audit_inodes(unordered_multimap<long, Inode> &inodes, unordered_map<long, D
 		if (entry != dir->second.entries.end() && parent != parentDir.end() && parent->second != entry->second.num)
 		{
 			cout << "DIRECTORY INODE " << parent->second << " NAME '..' LINK TO INODE " << entry->second.num << " SHOULD BE " << parent->second << endl;
+			result = false;
 		}
 	}
+
+	return result;
 }
 
-void audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, const Group& gp, unordered_multimap<long, Indirect>& indir) {
-
+bool audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, const Group& gp, unordered_multimap<long, Indirect>& indir) {
+	bool result = true;
 	// Keep track of which valid blocks have not been referenced yet
 	unordered_set<long> unref_blocks;
 	const long FIRST_U_BLOCK = gp.firstBlock + (super.inodesPerGroup * super.inodeSize) / super.blockSize;
@@ -475,8 +489,10 @@ void audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, co
 
 	for(auto itr = blocks.begin(); itr != blocks.end(); ++itr) {
 		unref_blocks.erase(itr->first); // Block has been referenced
-		if(itr->second.onFreelist && itr->second.inodes.size())
-			cout << "ALLOCATED BLOCK " << itr->first << " ON FREELIST" << endl; 
+		if(itr->second.onFreelist && itr->second.inodes.size()) {
+			cout << "ALLOCATED BLOCK " << itr->first << " ON FREELIST" << endl;
+			result = false;
+		}
 		for(long j = 0; j < itr->second.inodes.size(); j++) {
 			string type; // Defaults to empty string
 			switch(itr->second.levels[j]) {
@@ -494,6 +510,7 @@ void audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, co
 			if(itr->first < FIRST_U_BLOCK) {
 				// RESERVED BLOCK
 				cout << "RESERVED " << type << "BLOCK " << itr->first << " IN INODE " << itr->second.inodes[j] << " AT OFFSET ";
+				result = false;
 				long off = 12;
 				if(itr->second.offsets[j] < 0) {
 					// Offset is unknown and indirect
@@ -509,6 +526,7 @@ void audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, co
 			} else if(itr->first >= super.numBlocks || itr->first < 0) {
 				
 				cout << "INVALID " << type << "BLOCK " << itr->first << " IN INODE " << itr->second.inodes[j] << " AT OFFSET ";
+				result = false;
 				long off = 12;
 				if(itr->second.offsets[j] < 0) {
 					// Offset is unknown and indirect
@@ -538,7 +556,9 @@ void audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, co
 					break;
 				}
 				cout << "DUPLICATE " << type << "BLOCK " << itr->first << " IN INODE " << itr->second.inodes[i] << " AT OFFSET ";
-				if(itr->second.offsets[i] < 0) {
+				result = false;
+				if (itr->second.offsets[i] < 0)
+				{
 					itr->second.offsets[i] = resolve_offset(indir, itr, i, super);
 				}
 
@@ -549,8 +569,10 @@ void audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, co
 	}
 
 	for(auto itr = unref_blocks.begin(); itr != unref_blocks.end(); ++itr) {
-		cout << "UNREFERENCED BLOCK " << *itr << endl; 
+		cout << "UNREFERENCED BLOCK " << *itr << endl;
+		result = false;
 	}
+	return result;
 }
 
 int main(int argc, char ** argv) {
@@ -565,8 +587,8 @@ int main(int argc, char ** argv) {
 	init_file(argc, argv, fin);
 
 	collect_data(fin, blocks, super, indir, inodes, gp, dirs);
-	audit_block(blocks, super, gp, indir);
-	audit_inodes(inodes, dirs, super, gp);
+	bool block = audit_block(blocks, super, gp, indir);
+	bool inode = audit_inodes(inodes, dirs, super, gp);
 
-	return 0;
+	return (block && inode ? 0 : 2);
 }
