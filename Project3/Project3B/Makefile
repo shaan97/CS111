@@ -6,4 +6,4 @@ debug:
 clean:
 	-rm -rf lab3b
 dist:
-	tar -czvf lab3b.cpp data.h Makefile README
+	tar -czvf lab3b-904606576.tar.gz lab3b.cpp data.h Makefile README
