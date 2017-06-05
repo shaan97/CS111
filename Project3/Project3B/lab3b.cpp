@@ -444,7 +444,7 @@ void audit_inodes(unordered_multimap<long, Inode> &inodes, unordered_map<long, D
 				cout << "DIRECTORY INODE " << dir->second.num << " NAME " << entry->second.name << " UNALLOCATED INODE " << entry->second.num << endl;
 			}
 
-			if(entry->second.type == 'd') {
+			if(entry->second.type == 'd' && entry->second.name != "'.'" && entry->second.name != "'..'") {
 				parentDir.emplace(entry->second.num, dir->second.num);
 			}
 		}
