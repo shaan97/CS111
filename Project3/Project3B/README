@@ -1,6 +1,23 @@
 NAME: SHAAN MATHUR, GARVIT PUGALIA
 EMAIL: SHAANKARANMATHUR@GMAIL.COM, GARVITPUGALIA@GMAIL.COM
-UID: 904606576
+UID: 904606576, 504628127
+
+NOTE: The SEASNET server for different students have different versions of g++
+(even though we are both on lnxsrv09.seas.ucla.edu. These versions are:
+
+      1. g++ version 
+      1. g++ version
+
+On the older version, running g++ with the -stdc++11 flag is sufficient for successful compilation.
+However on the newer version, we need to link to libstdc++.so.6 (which the server doesn't do for
+Shaan's lnxsrv09.seas.ucla.edu). Statically linking works for the server with the newer
+version, but not with the older version! So we wrote a build script that would run static linking
+first, and if that fails we run with the -stdc++11 flag. Please note this during the building
+of this software on lnxsrv09.seas.ucla.edu.
+
+We tried to solve this issue on Lab3A; however, in reflection our attempted solution would likely
+not work in all cases. This version should work. We mention this in the older README, but please
+keep this in consideration.
 
 INCLUDED FILES
 1. lab3b.cpp
@@ -19,6 +36,9 @@ INCLUDED FILES
 
 4. README
 	This file, which details included files and information on sources.
+
+5. build.sh
+	Build shell script used to build our program to support C++11. 
 
 RESOURCES
 
