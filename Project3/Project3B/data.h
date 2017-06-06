@@ -1,3 +1,7 @@
+//NAME: SHAAN MATHUR, GARVIT PUGALIA
+//EMAIL: shaankaranmathur@gmail.com, garvitpugalia@gmail.com
+//ID: 904606576, 504628127
+
 #ifndef DATA_H
 #define DATA_H
 
