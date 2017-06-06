@@ -1,6 +1,7 @@
 default: build
 build:
-	g++ -std=c++11 -static-libstdc++ lab3b.cpp -o lab3b
+	-g++ -std=c++11 -static-libstdc++ lab3b.cpp -o lab3b
+	./build.sh
 debug:
 	g++ -g -std=c++11 -static-libstdc++ lab3b.cpp -o lab3b
 clean:
