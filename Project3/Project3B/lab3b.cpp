@@ -105,7 +105,6 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
             ss >> freeBlocks;
             ignore_num(ss, 3);
             ss >> firstBlock;
-			/* TODO : Handle multiple groups */
 			gp.freeBlocks = freeBlocks;
 			gp.num = group_num;
 			gp.firstBlock = firstBlock;
@@ -158,12 +157,16 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 			ss >> inode_num;
 			i.num = inode_num;
             ss >> i.type;
-            ignore_num(ss, 3);
-            ss >> linkcount;
+			int mode;
+			ss >> mode;
+			
+			ignore_num(ss, 2);
+			ss >> linkcount;
+			i.isAllocated = mode && linkcount;
 			auto range = inodes.equal_range(inode_num);
 			if (range.first == range.second)
 			{
-				i.isAllocated = true;
+				//i.isAllocated = true;
 				i.linkcount = linkcount;
 				inodes.emplace(inode_num, i);
 			}
@@ -171,7 +174,7 @@ void collect_data(ifstream& fin, unordered_map<long, Block>& blocks, SuperBlock&
 			{
 				auto itr = range.first;
 				while(itr != range.second) {
-					itr->second.isAllocated = true;
+					itr->second.isAllocated = i.isAllocated;
 					itr->second.linkcount = linkcount;
 					itr->second.num = inode_num;
                 	itr->second.type = i.type;
@@ -507,12 +510,12 @@ bool audit_block(unordered_map<long, Block>& blocks, const SuperBlock& super, co
 				break;
 			}
 
-			if(itr->first < FIRST_U_BLOCK) {
+			if(itr->first < FIRST_U_BLOCK && itr->first >= 0) {
 				// RESERVED BLOCK
 				cout << "RESERVED " << type << "BLOCK " << itr->first << " IN INODE " << itr->second.inodes[j] << " AT OFFSET ";
 				result = false;
 				long off = 12;
-				if(itr->second.offsets[j] < 0) {
+				if(itr->second.offsets[j] < 0) {	
 					// Offset is unknown and indirect
 					
 					off = resolve_offset(indir, itr, j, super);
