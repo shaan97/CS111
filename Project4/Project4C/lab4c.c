@@ -136,10 +136,10 @@ SSL* ssl_init(int sockfd) {
 		fprintf(stderr, "SSL Setup Failure.\n");
 		exit(1);
 	}
+	SSL *ssl = SSL_new(ssl_obj);
+	SSL_connect(ssl);
 
-	SSL_connect(ssl_obj);
-
-	return ssl_obj;
+	return ssl;
 }
 int main(int argc, char **argv)
 {
