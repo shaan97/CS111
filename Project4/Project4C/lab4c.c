@@ -234,19 +234,20 @@ int main(int argc, char **argv)
 	}
 
 	
-
+	char buffer[512];
 
 	int sockfd = remote_connect(hostname, port);
 	SSL *ssl;
 	if (isSSL)
 	{
 		ssl = ssl_init(sockfd);
-		SSL_write(ssl, "ID=%s\n", ID_LENGTH + 4);
+		sprintf(buffer, "ID=%s\n", id);
+		SSL_write(ssl, buffer, strlen(buffer));
 	}
 	else
 		dprintf(sockfd, "ID=%s\n", id);
 
-	char buffer[512];
+	
 
 	mraa_aio_context t_sensor;
 	mraa_gpio_context button;
