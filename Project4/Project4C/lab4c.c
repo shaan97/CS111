@@ -169,13 +169,13 @@ int main(int argc, char **argv)
 
 	const int ID_LENGTH = 9;
 	int size = 0;
-	int ssl = 0;
+	int isSSL = 0;
 	while ((c = getopt_long(argc, argv, "i:h:l:", l_options, NULL)) != -1)
 	{
 		switch (c)
 		{
 		case 's':
-			ssl = 1;
+			isSSL = 1;
 			break;
 		case 'i':
 			if (strlen(optarg) != ID_LENGTH)
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
 	int sockfd = remote_connect(hostname, port);
 	SSL *ssl;
-	if (ssl)
+	if (isSSL)
 	{
 		ssl = ssl_init(sockfd);
 		SSL_write(ssl, "ID=%s\n", ID_LENGTH + 4);
@@ -243,14 +243,14 @@ int main(int argc, char **argv)
 
 	// Run first initially to make sure at least one message is printed.
 	if (tmp >= 10.0) {
-		if(!ssl)
+		if(!isSSL)
 			dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 		else {
 			sprintf(buffer, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 			SSL_write(ssl, buffer, strlen(buffer));
 		}
 	}else{
-		if(!ssl)
+		if(!isSSL)
 			dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 		else {
 			sprintf(buffer, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);			
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 			do
 			{
 				int rc;
-				if(!ssl)
+				if(!isSSL)
 					rc = read(fd.fd, (void *)buff, capacity - size);
 				else
 				{
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 		{
 			tmp = floor(tmp * 10.0) / 10.0;
 			if (tmp >= 10.0){
-				if(!ssl)
+				if(!isSSL)
 					dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 				else
 				{
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 				}
 			}
 			else {
-				if(!ssl)
+				if(!isSSL)
 					dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 				else
 				{
