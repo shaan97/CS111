@@ -1,0 +1,26 @@
+NAME: SHAAN MATHUR
+EMAIL: SHAANKARANMATHUR@GMAIL.COM
+UID: 904606576
+
+INCLUDED FILES
+
+1. lab4c.c
+	A C source file that is meant to be built and run on an Intel Edison.
+It uses a temperature sensor and a shutdown button to print out temperatures
+to a specified port and host under a specified ID. If the name of the
+executable is lab4c_tls, it will run under the SSL/TLS protocol.
+
+2. README
+	This file, specifying what is included in the project as well as
+resources used.
+
+3. Makefile
+	Can be used in tandem with the make command to build (default), debug
+(debug), generate object files (lab4c.o), clean (clean), and create a zipped
+tarball (dist).
+
+
+RESOURCES USED
+
+http://fm4dd.com/openssl/sslconnect.htm
+Example tutorial on how to use the OpenSSL API in C.
