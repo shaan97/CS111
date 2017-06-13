@@ -74,7 +74,7 @@ void print_usage()
 	fprintf(stderr, "Usage: [--id=9DIGIT] [--host=HOSTNAME] [--log=FILENAME]\n");
 }
 
-void shutdown(int logfd)
+void shut(int logfd)
 {
 	time_t rawtime;
 	struct tm *timeinfo;
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 		if (mraa_gpio_read(button))
 		{
 			close_sensors(&t_sensor, &button);
-			shutdown(logfd);
+			shut(logfd);
 		}
 
 		if (poll(&fd, 1, 0) < 0)
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
 					if (logfd != -1)
 						dprintf(logfd, "OFF\n");
 					close_sensors(&t_sensor, &button);
-					shutdown(logfd);
+					shut(logfd);
 				}
 				else if (strcmp(token, "STOP") == 0)
 				{
