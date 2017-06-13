@@ -175,11 +175,13 @@ SSL* ssl_init(int sockfd, SSL_CTX ** ctx) {
 }
 int main(int argc, char **argv)
 {
+	int isSSL = 0;
+	if(strcmp(argv[0], "lab4c_tls")  == 0)
+		isSSL = 1;
 	unsigned int seconds = 1; // COMMAND LINE ARGUMENT
 	int mode = FAHR;		  // COMMAND LINE ARGUMENT
 	int logfd = -1;
 	static struct option l_options[] = {
-		{"ssl", no_argument, NULL, 's'},
 		{"id", required_argument, NULL, 'i'},
 		{"host", required_argument, NULL, 'h'},
 		{"log", required_argument, NULL, 'l'},
@@ -199,14 +201,11 @@ int main(int argc, char **argv)
 
 	const int ID_LENGTH = 9;
 	int size = 0;
-	int isSSL = 0;
+	
 	while ((c = getopt_long(argc, argv, "i:h:l:", l_options, NULL)) != -1)
 	{
 		switch (c)
 		{
-		case 's':
-			isSSL = 1;
-			break;
 		case 'i':
 			if (strlen(optarg) != ID_LENGTH)
 			{
