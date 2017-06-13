@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <mraa.h>
+#include <openssl/ssl.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <poll.h>
@@ -129,6 +130,17 @@ int remote_connect(const char * hostname, int port) {
 	return sockfd;
 }
 
+SSL* ssl_init(int sockfd) {
+	SSL_CTX *ssl_obj = SSL_CTX_new(TLS_method);
+	if(!SSL_set_fd(ssl_obj, sockfd)) {
+		fprintf(stderr, "SSL Setup Failure.\n");
+		exit(1);
+	}
+
+	SSL_connect(ssl_obj);
+
+	return ssl_obj;
+}
 int main(int argc, char **argv)
 {
 	unsigned int seconds = 1; // COMMAND LINE ARGUMENT
@@ -194,8 +206,9 @@ int main(int argc, char **argv)
 
 
 	int sockfd = remote_connect(hostname, port);
+	SSL* ssl = ssl_init(sockfd);
 	dprintf(sockfd, "ID=%s\n", id);
-	
+
 	mraa_aio_context t_sensor;
 	mraa_gpio_context button;
 	init(&t_sensor, &button);
