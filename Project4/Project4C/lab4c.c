@@ -149,6 +149,7 @@ int main(int argc, char **argv)
 	int mode = FAHR;		  // COMMAND LINE ARGUMENT
 	int logfd = -1;
 	static struct option l_options[] = {
+		{"ssl", no_argument, NULL, 's'}
 		{"id", required_argument, NULL, 'i'},
 		{"host", required_argument, NULL, 'h'},
 		{"log", required_argument, NULL, 'l'},
@@ -168,10 +169,14 @@ int main(int argc, char **argv)
 
 	const int ID_LENGTH = 9;
 	int size = 0;
+	int ssl = 0;
 	while ((c = getopt_long(argc, argv, "i:h:l:", l_options, NULL)) != -1)
 	{
 		switch (c)
 		{
+		case 's':
+			ssl = 1;
+			break;
 		case 'i':
 			if (strlen(optarg) != ID_LENGTH)
 			{
@@ -208,8 +213,16 @@ int main(int argc, char **argv)
 
 
 	int sockfd = remote_connect(hostname, port);
-	SSL* ssl = ssl_init(sockfd);
-	dprintf(sockfd, "ID=%s\n", id);
+	SSL *ssl;
+	if (ssl)
+	{
+		ssl = ssl_init(sockfd);
+		SSL_write(ssl, "ID=%s\n", ID_LENGTH + 4);
+	}
+	else
+		dprintf(sockfd, "ID=%s\n", id);
+
+	char buffer[512];
 
 	mraa_aio_context t_sensor;
 	mraa_gpio_context button;
@@ -229,10 +242,21 @@ int main(int argc, char **argv)
 	float tmp = read_temperature(&t_sensor, mode);
 
 	// Run first initially to make sure at least one message is printed.
-	if (tmp >= 10.0)
-		dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-	else
-		dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+	if (tmp >= 10.0) {
+		if(!ssl)
+			dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+		else {
+			sprintf(buffer, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+			SSL_write(ssl, buffer, strlen(buffer));
+		}
+	}else{
+		if(!ssl)
+			dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+		else {
+			sprintf(buffer, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);			
+			SSL_write(ssl, buffer, strlen(buffer));
+		}
+	}
 	if (logfd != -1)
 	{
 		if (tmp >= 10.0)
@@ -265,7 +289,13 @@ int main(int argc, char **argv)
 			char *buff = (char *)malloc(sizeof(char) * capacity);
 			do
 			{
-				int rc = read(fd.fd, (void *)buff, capacity - size);
+				int rc;
+				if(!ssl)
+					rc = read(fd.fd, (void *)buff, capacity - size);
+				else
+				{
+					rc = SSL_read(ssl, (void *)buff, capacity - size);
+				}
 				if (rc <= 0)
 					break;
 				size += rc;
@@ -352,10 +382,24 @@ int main(int argc, char **argv)
 		if (running && rawtime - prev >= seconds)
 		{
 			tmp = floor(tmp * 10.0) / 10.0;
-			if (tmp >= 10.0)
-				dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-			else
-				dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+			if (tmp >= 10.0){
+				if(!ssl)
+					dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+				else
+				{
+					sprintf(buffer, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+					SSL_write(ssl, buffer, strlen(buffer));
+				}
+			}
+			else {
+				if(!ssl)
+					dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+				else
+				{
+					sprintf(buffer, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+					SSL_write(ssl, buffer, strlen(buffer);
+				}
+			}
 			if (logfd != -1)
 			{
 				if (tmp >= 10.0)
