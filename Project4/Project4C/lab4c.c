@@ -176,8 +176,17 @@ SSL* ssl_init(int sockfd, SSL_CTX ** ctx) {
 int main(int argc, char **argv)
 {
 	int isSSL = 0;
-	if(strcmp(argv[0], "lab4c_tls")  == 0)
+	char *last_slash = argv[0];
+	char * current = argv[0];
+	while(current) {
+		if(*current == '/' || *current == '\\')
+			last_slash = current;
+		current++;
+	}
+
+	if (strcmp(last_slash, "lab4c_tls") == 0)
 		isSSL = 1;
+	
 	unsigned int seconds = 1; // COMMAND LINE ARGUMENT
 	int mode = FAHR;		  // COMMAND LINE ARGUMENT
 	int logfd = -1;
