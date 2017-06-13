@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 	
 
 
-	sockfd = remote_connect(hostname, port);
+	int sockfd = remote_connect(hostname, port);
 	dprintf(sockfd, "ID=%s\n", id);
 	
 	mraa_aio_context t_sensor;
