@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 	}
 
 	// Get information on target server host/port
-	struct hostent *server_name = gethostbyname(host);
+	struct hostent *server_name = gethostbyname(hostname);
 
 	bzero((char *)&server_address, sizeof(server_address));												// Zero it out for padding purposes
 	bcopy((char *)server_name->h_addr, (char *)&server_address.sin_addr.s_addr, server_name->h_length); // Copy over relevant data from server_name
