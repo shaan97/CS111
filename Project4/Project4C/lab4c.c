@@ -134,6 +134,10 @@ SSL* ssl_init(int sockfd) {
 	const SSL_METHOD *method = SSLv23_method();
 	SSL_CTX *ssl_obj = SSL_CTX_new(method);
 	SSL *ssl = SSL_new(ssl_obj);
+	if(!ssl) {
+		fprintf(stderr, "Could not initialize SSL.\n");
+		exit(1);
+	}
 	if(!SSL_set_fd(ssl, sockfd)) {
 		fprintf(stderr, "SSL Setup Failure.\n");
 		exit(1);
@@ -149,7 +153,7 @@ int main(int argc, char **argv)
 	int mode = FAHR;		  // COMMAND LINE ARGUMENT
 	int logfd = -1;
 	static struct option l_options[] = {
-		{"ssl", no_argument, NULL, 's'}
+		{"ssl", no_argument, NULL, 's'},
 		{"id", required_argument, NULL, 'i'},
 		{"host", required_argument, NULL, 'h'},
 		{"log", required_argument, NULL, 'l'},
@@ -397,7 +401,7 @@ int main(int argc, char **argv)
 				else
 				{
 					sprintf(buffer, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
-					SSL_write(ssl, buffer, strlen(buffer);
+					SSL_write(ssl, buffer, strlen(buffer));
 				}
 			}
 			if (logfd != -1)
