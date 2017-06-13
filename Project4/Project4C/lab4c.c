@@ -131,12 +131,12 @@ int main(int argc, char **argv)
 				print_usage();
 				exit(1);
 			}
-			strcpy(id, optarg, ID_LENGTH);
+			strcpy(id, optarg);
 			break;
 		case 'h':
 			int size = strlen(optarg);
 			hostname = (char *)malloc(sizeof(char) * (size + 1));
-			strcpy(hostname, optarg, size);
+			strcpy(hostname, optarg);
 			hostname[size] = 0; // Null terminated
 
 			break;
