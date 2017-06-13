@@ -119,6 +119,12 @@ int main(int argc, char **argv)
 	char *hostname = "localhost"; // COMMAND LINE ARGUMENT
 	long port = -1;				  // COMMAND LINE ARGUMENT
 
+	for (int i = 1; i < argc; i++) {
+		if(argv[i][0] == '-')
+			continue;
+		port = atoi(argv[i]);
+	}
+
 	const int ID_LENGTH = 9;
 	int size = 0;
 	while ((c = getopt_long(argc, argv, "i:h:l:", l_options, NULL)) != -1)
