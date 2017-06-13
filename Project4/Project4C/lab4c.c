@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <strings.h>
 
 const int B = 4275;	// B value of the thermistor
 const int R0 = 100000; // R0 = 100k
@@ -163,33 +164,30 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	int listenfd = 0, fromfd = 0;
+	int sockfd;
 	struct sockaddr_in server_address;
-	struct sockaddr_in client_address;
-	if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
-		fprintf(stderr, "Error #: %d. Error Message: \"%s\"\n", errno, strerror(errno));
+		fprintf(stderr, "Error#: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
 		exit(1);
 	}
 
-	memset(&server_address, 0, sizeof(server_address));
-	memset(&client_address, 0, sizeof(client_address));
+	// Get information on target server host/port
+	struct hostent *server_name = gethostbyname(host);
+
+	bzero((char *)&server_address, sizeof(server_address));												// Zero it out for padding purposes
+	bcopy((char *)server_name->h_addr, (char *)&server_address.sin_addr.s_addr, server_name->h_length); // Copy over relevant data from server_name
 
 	server_address.sin_family = AF_INET;
-	server_address.sin_addr.s_addr = INADDR_ANY;
 	server_address.sin_port = htons(port);
 
-	if (bind(listenfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
+	if (connect(sockfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
 	{
-		fprintf(stderr, "Error #: %d. Error Message: \"%s\"\n", errno, strerror(errno));
+		fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
 		exit(1);
 	}
 
-	listen(listenfd, 5);
-	unsigned cli_len = sizeof(client_address);
-	fromfd = accept(listenfd, (struct sockaddr *)&client_address, &cli_len);
-
-	dprintf(fromfd, "ID=%s\n", id);
+	dprintf(sockfd, "ID=%s\n", id);
 
 	mraa_aio_context t_sensor;
 	mraa_gpio_context button;
@@ -210,9 +208,9 @@ int main(int argc, char **argv)
 
 	// Run first initially to make sure at least one message is printed.
 	if (tmp >= 10.0)
-		dprintf(fromfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+		dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 	else
-		dprintf(fromfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+		dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 	if (logfd != -1)
 	{
 		if (tmp >= 10.0)
@@ -333,9 +331,9 @@ int main(int argc, char **argv)
 		{
 			tmp = floor(tmp * 10.0) / 10.0;
 			if (tmp >= 10.0)
-				dprintf(fromfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+				dprintf(sockfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 			else
-				dprintf(fromfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+				dprintf(sockfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 			if (logfd != -1)
 			{
 				if (tmp >= 10.0)
