@@ -118,11 +118,11 @@ int main(int argc, char **argv)
 	char *id = "510648792";		  // COMMAND LINE ARGUMENT
 	char *hostname = "localhost"; // COMMAND LINE ARGUMENT
 	long port = -1;				  // COMMAND LINE ARGUMENT
-
-	for (int i = 1; i < argc; i++) {
-		if(argv[i][0] == '-')
+	int x;
+	for (x = 1; x < argc; x++) {
+		if(argv[x][0] == '-')
 			continue;
-		port = atoi(argv[i]);
+		port = atoi(argv[x]);
 	}
 
 	const int ID_LENGTH = 9;
