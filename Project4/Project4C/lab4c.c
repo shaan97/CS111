@@ -132,6 +132,7 @@ int main(int argc, char **argv)
 				print_usage();
 				exit(1);
 			}
+			id = (char *)malloc(sizeof(char) * (ID_LENGTH + 1));
 			strcpy(id, optarg);
 			break;
 		case 'h':
