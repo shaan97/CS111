@@ -104,6 +104,11 @@ void close_sensors(mraa_aio_context *a, mraa_gpio_context *b)
 	mraa_gpio_close(*b);
 }
 
+void close_ssl(SSL* ssl, SSL_CTX* ctx) {
+	SSL_free(ssl);
+	SSL_CTX_free(ctx);
+}
+
 int remote_connect(const char * hostname, int port) {
 	// Get information on target server host/port
 	int sockfd;
@@ -130,7 +135,7 @@ int remote_connect(const char * hostname, int port) {
 	return sockfd;
 }
 
-SSL* ssl_init(int sockfd) {
+SSL* ssl_init(int sockfd, SSL_CTX ** ctx) {
 	if(!SSL_library_init()) {
 		fprintf(stderr, "Failed to initialize SSL Library.\n");
 		exit(1);
@@ -165,6 +170,7 @@ SSL* ssl_init(int sockfd) {
 		exit(1);
 	}
 
+	*ctx = ssl_obj;
 	return ssl;
 }
 int main(int argc, char **argv)
@@ -238,9 +244,10 @@ int main(int argc, char **argv)
 
 	int sockfd = remote_connect(hostname, port);
 	SSL *ssl;
+	SSL_CTX *ctx;
 	if (isSSL)
 	{
-		ssl = ssl_init(sockfd);
+		ssl = ssl_init(sockfd, &ctx);
 		sprintf(buffer, "ID=%s\n", id);
 		SSL_write(ssl, buffer, strlen(buffer));
 	}
@@ -296,6 +303,8 @@ int main(int argc, char **argv)
 		if (mraa_gpio_read(button))
 		{
 			close_sensors(&t_sensor, &button);
+			if(isSSL)
+				close_ssl(ssl, ctx);
 			shut(logfd);
 		}
 
@@ -303,6 +312,8 @@ int main(int argc, char **argv)
 		{
 			fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
 			close_sensors(&t_sensor, &button);
+			if(isSSL)
+				close_ssl(ssl, ctx);
 			exit(1);
 		}
 
@@ -332,6 +343,8 @@ int main(int argc, char **argv)
 				{
 					fprintf(stderr, "Error #:%d Error Message:%s\n", errno, strerror(errno));
 					close_sensors(&t_sensor, &button);
+					if(isSSL)
+						close_ssl(ssl, ctx);
 					exit(1);
 				}
 			} while (fd.revents & POLLIN);
@@ -349,6 +362,8 @@ int main(int argc, char **argv)
 					if (logfd != -1)
 						dprintf(logfd, "OFF\n");
 					close_sensors(&t_sensor, &button);
+					if(isSSL)
+						close_ssl(ssl, ctx);
 					shut(logfd);
 				}
 				else if (strcmp(token, "STOP") == 0)
@@ -368,6 +383,8 @@ int main(int argc, char **argv)
 					else
 					{
 						close_sensors(&t_sensor, &button);
+						if(isSSL)
+							close_ssl(ssl, ctx);
 						bad_input(logfd);
 					}
 				}
@@ -377,12 +394,16 @@ int main(int argc, char **argv)
 					if (seconds <= 0)
 					{
 						close_sensors(&t_sensor, &button);
+						if(isSSL)
+							close_ssl(ssl, ctx);
 						bad_input(logfd);
 					}
 				}
 				else
 				{
 					close_sensors(&t_sensor, &button);
+					if(isSSL)
+						close_ssl(ssl, ctx);
 					bad_input(logfd);
 				}
 
@@ -395,6 +416,8 @@ int main(int argc, char **argv)
 		if (fd.revents & (POLLHUP | POLLERR))
 		{
 			close_sensors(&t_sensor, &button);
+			if(isSSL)
+				close_ssl(ssl, ctx);
 			fprintf(stderr, "Received POLLHUP or POLLERR from STDIN");
 			exit(1);
 		}
@@ -437,5 +460,7 @@ int main(int argc, char **argv)
 	}
 
 	close_sensors(&t_sensor, &button);
+	if(isSSL)
+		close_ssl(ssl, ctx);
 	return 0;
 }
