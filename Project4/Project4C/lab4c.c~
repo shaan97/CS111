@@ -131,7 +131,7 @@ int remote_connect(const char * hostname, int port) {
 }
 
 SSL* ssl_init(int sockfd) {
-	const SSL_METHOD *method = SSLv23_method();
+	const SSL_METHOD *method = TLS_client_method();
 	SSL_CTX *ssl_obj = SSL_CTX_new(method);
 	SSL *ssl = SSL_new(ssl_obj);
 	if(!SSL_set_fd(ssl, sockfd)) {
