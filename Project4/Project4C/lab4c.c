@@ -131,15 +131,15 @@ int remote_connect(const char * hostname, int port) {
 }
 
 SSL* ssl_init(int sockfd) {
-	SSL_CTX *ssl_obj = SSL_CTX_new(TLS_method());
+	SSL_CTX *ssl_obj = SSL_CTX_new(TLS_method);
 	if(!SSL_set_fd(ssl_obj, sockfd)) {
-		fprintf("SSL Setup Failure.\n");
+		fprintf(stderr, "SSL Setup Failure.\n");
 		exit(1);
 	}
+	SSL *ssl = SSL_new(ssl_obj);
+	SSL_connect(ssl);
 
-	SSL_connect(ssl_obj);
-
-	return ssl_obj;
+	return ssl;
 }
 int main(int argc, char **argv)
 {
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 	
 
 
-	sockfd = remote_connect(hostname, port);
+	int sockfd = remote_connect(hostname, port);
 	SSL* ssl = ssl_init(sockfd);
 	dprintf(sockfd, "ID=%s\n", id);
 
