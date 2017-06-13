@@ -134,8 +134,8 @@ int main(int argc, char **argv)
 			strcpy(id, optarg);
 			break;
 		case 'h':
-			int size = strlen(optarg);
-			hostname = (char *)malloc(sizeof(char) * (size + 1));
+			
+			hostname = (char *)malloc(sizeof(char) * (strlen(optarg) + 1));
 			strcpy(hostname, optarg);
 			hostname[size] = 0; // Null terminated
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 	unsigned cli_len = sizeof(client_address);
 	fromfd = accept(listenfd, (struct sockaddr *)&client_address, &cli_len);
 
-	fprintf(fromfd, "ID=%s\n", id);
+	dprintf(fromfd, "ID=%s\n", id);
 
 	mraa_aio_context t_sensor;
 	mraa_gpio_context button;
@@ -205,9 +205,9 @@ int main(int argc, char **argv)
 
 	// Run first initially to make sure at least one message is printed.
 	if (tmp >= 10.0)
-		printf("%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+		dprintf(fromfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 	else
-		printf("%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+		dprintf(fromfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 	if (logfd != -1)
 	{
 		if (tmp >= 10.0)
@@ -328,9 +328,9 @@ int main(int argc, char **argv)
 		{
 			tmp = floor(tmp * 10.0) / 10.0;
 			if (tmp >= 10.0)
-				fprintf(fromfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+				dprintf(fromfd, "%02d:%02d:%02d %.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 			else
-				fprintf(fromfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
+				dprintf(fromfd, "%02d:%02d:%02d 0%.1f\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, tmp);
 			if (logfd != -1)
 			{
 				if (tmp >= 10.0)
