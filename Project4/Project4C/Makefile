@@ -15,6 +15,6 @@ debug:
 	-rm -rf lab4c_tls
 	ln -s lab4c_tcp lab4c_tls
 clean:
-	-rm -rf *.o lab4c_*
+	-rm -rf *.o lab4c_* *.tar.gz
 dist:
 	tar -czf lab4c-904606576.tar.gz Makefile README lab4c.c
