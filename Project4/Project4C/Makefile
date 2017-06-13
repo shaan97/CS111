@@ -1,3 +1,8 @@
+# NAME: SHAAN MATHUR
+# EMAIL: SHAANKARANMATHUR@GMAIL.COM
+# UID: 904606576
+
+
 default: build
 build: lab4c.o
 	gcc -lmraa -lm -lssl -lcrypto lab4c.o -o lab4c_tcp
