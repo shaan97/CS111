@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 
 	int running = 1;
 	struct pollfd fd;
-	fd.fd = 0;
+	fd.fd = sockfd;
 	fd.events = POLLIN | POLLHUP | POLLERR;
 
 	time(&rawtime);
