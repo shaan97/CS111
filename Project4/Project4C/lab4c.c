@@ -151,9 +151,6 @@ int main(int argc, char **argv)
 		case 'l':
 			logfd = open(optarg, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 			break;
-		case '?':
-			port = atoi(optarg);
-			break;
 		default:
 			print_usage();
 			exit(1);
