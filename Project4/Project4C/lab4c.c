@@ -120,6 +120,7 @@ int main(int argc, char **argv)
 	long port = -1;				  // COMMAND LINE ARGUMENT
 
 	const int ID_LENGTH = 9;
+	int size = 0;
 	while ((c = getopt_long(argc, argv, "i:h:l:", l_options, NULL)) != -1)
 	{
 		switch (c)
@@ -134,8 +135,8 @@ int main(int argc, char **argv)
 			strcpy(id, optarg);
 			break;
 		case 'h':
-			
-			hostname = (char *)malloc(sizeof(char) * (strlen(optarg) + 1));
+			size = strlen(optarg);
+			hostname = (char *)malloc(sizeof(char) * (size + 1));
 			strcpy(hostname, optarg);
 			hostname[size] = 0; // Null terminated
 
