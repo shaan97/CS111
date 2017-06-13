@@ -131,12 +131,14 @@ int remote_connect(const char * hostname, int port) {
 }
 
 SSL* ssl_init(int sockfd) {
-	SSL_CTX *ssl_obj = SSL_CTX_new(TLS_method);
-	if(!SSL_set_fd(ssl_obj, sockfd)) {
+	const SSL_METHOD *method = TLS_method();
+	SSL_CTX *ssl_obj = SSL_CTX_new(method);
+	SSL *ssl = SSL_new(ssl_obj);
+	if(!SSL_set_fd(ssl, sockfd)) {
 		fprintf(stderr, "SSL Setup Failure.\n");
 		exit(1);
 	}
-	SSL *ssl = SSL_new(ssl_obj);
+	
 	SSL_connect(ssl);
 
 	return ssl;
