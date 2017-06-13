@@ -178,12 +178,12 @@ int main(int argc, char **argv)
 	int isSSL = 0;
 	char *last_slash = argv[0];
 	char * current = argv[0];
-	while(current) {
+	while(*current) {
 		if(*current == '/' || *current == '\\')
 			last_slash = current;
 		current++;
 	}
-
+	last_slash++;
 	if (strcmp(last_slash, "lab4c_tls") == 0)
 		isSSL = 1;
 	
