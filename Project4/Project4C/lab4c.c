@@ -131,19 +131,39 @@ int remote_connect(const char * hostname, int port) {
 }
 
 SSL* ssl_init(int sockfd) {
+	if(!SSL_library_init()) {
+		fprintf(stderr, "Failed to initialize SSL Library.\n");
+		exit(1);
+	}
 	const SSL_METHOD *method = SSLv23_method();
+	if(!method) {
+		fprintf(stderr, "Could not initialize SSL.\n");
+		exit(1);
+	}
+
 	SSL_CTX *ssl_obj = SSL_CTX_new(method);
+	if(!ssl_obj) {
+		fprintf(stderr, "Could not initialize SSL.\n");
+		exit(1);
+	}
+
+	SSL_CTX_set_options(ssl_obj, SSL_OP_NO_SSLv2);
+
 	SSL *ssl = SSL_new(ssl_obj);
 	if(!ssl) {
 		fprintf(stderr, "Could not initialize SSL.\n");
 		exit(1);
 	}
+
 	if(!SSL_set_fd(ssl, sockfd)) {
 		fprintf(stderr, "SSL Setup Failure.\n");
 		exit(1);
 	}
 	
-	SSL_connect(ssl);
+	if(SSL_connect(ssl) != 1) {
+		fprintf(stderr, "Failed to make SSL Connection.\n");
+		exit(1);
+	}
 
 	return ssl;
 }
