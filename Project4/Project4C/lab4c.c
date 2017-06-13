@@ -103,6 +103,32 @@ void close_sensors(mraa_aio_context *a, mraa_gpio_context *b)
 	mraa_gpio_close(*b);
 }
 
+int remote_connect(const char * hostname, int port) {
+	// Get information on target server host/port
+	int sockfd;
+	struct sockaddr_in server_address;
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		fprintf(stderr, "Error#: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+		exit(1);
+	}
+	struct hostent *server_name = gethostbyname(hostname);
+
+	bzero((char *)&server_address, sizeof(server_address));												// Zero it out for padding purposes
+	bcopy((char *)server_name->h_addr, (char *)&server_address.sin_addr.s_addr, server_name->h_length); // Copy over relevant data from server_name
+
+	server_address.sin_family = AF_INET;
+	server_address.sin_port = htons(port);
+
+	if (connect(sockfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
+	{
+		fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
+		exit(1);
+	}
+
+	return sockfd;
+}
+
 int main(int argc, char **argv)
 {
 	unsigned int seconds = 1; // COMMAND LINE ARGUMENT
@@ -116,9 +142,9 @@ int main(int argc, char **argv)
 
 	char c;
 
-	char *id = "510648792";		  // COMMAND LINE ARGUMENT
-	char *hostname = "localhost"; // COMMAND LINE ARGUMENT
-	long port = -1;				  // COMMAND LINE ARGUMENT
+	char *id = NULL;		  // COMMAND LINE ARGUMENT
+	char *hostname = NULL; 	  // COMMAND LINE ARGUMENT
+	long port = -1;			  // COMMAND LINE ARGUMENT
 	int x;
 	for (x = 1; x < argc; x++) {
 		if(argv[x][0] == '-')
@@ -164,31 +190,12 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	int sockfd;
-	struct sockaddr_in server_address;
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		fprintf(stderr, "Error#: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
-		exit(1);
-	}
+	
 
-	// Get information on target server host/port
-	struct hostent *server_name = gethostbyname(hostname);
 
-	bzero((char *)&server_address, sizeof(server_address));												// Zero it out for padding purposes
-	bcopy((char *)server_name->h_addr, (char *)&server_address.sin_addr.s_addr, server_name->h_length); // Copy over relevant data from server_name
-
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(port);
-
-	if (connect(sockfd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
-	{
-		fprintf(stderr, "Error #: %d. Error Message: \"%s\"\r\n", errno, strerror(errno));
-		exit(1);
-	}
-
+	sockfd = remote_connect(hostname, port);
 	dprintf(sockfd, "ID=%s\n", id);
-
+	
 	mraa_aio_context t_sensor;
 	mraa_gpio_context button;
 	init(&t_sensor, &button);
