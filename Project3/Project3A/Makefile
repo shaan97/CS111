@@ -4,12 +4,8 @@
 
 default: build
 build: lab3a.cpp EXT2_info.cpp
-	-LD_LIBRARY_PATH=/usr/local/cs/gcc-5.2.0/lib64/:$LD_LIBRARY_PATH
-	-export LD_LIBRARY_PATH
-	g++ EXT2_info.cpp lab3a.cpp -o lab3a -lm
+	./build.sh
 debug:
-	-LD_LIBRARY_PATH=/usr/local/cs/gcc-5.2.0/lib64/:$LD_LIBRARY_PATH
-	-export LD_LIBRARY_PATH
 	g++ -g EXT2_info.cpp lab3a.cpp -o lab3a -lm
 clean:
 	rm -rf lab3a
